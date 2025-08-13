@@ -8,6 +8,7 @@ class CoinSearch {
   final String farbe;
   final String geburt;
   final String geschlecht;
+  final String tierAenderung;
   final String email;
   final String telefonPriv;
   final String telefonGes;
@@ -31,6 +32,7 @@ class CoinSearch {
     required this.farbe,
     required this.geburt,
     required this.geschlecht,
+    required this.tierAenderung,
     required this.email,
     required this.telefonPriv,
     required this.telefonGes,
@@ -48,54 +50,32 @@ class CoinSearch {
   });
 
   factory CoinSearch.fromJson(Map<String, dynamic> json) {
-    return CoinSearch(
-      tiername:        json['tiername']           as String,
-      transponder:     json['transponder']        as String,
-      tierart:         json['tierart']            as String,
-      rasse:           json['rasse']              as String,
-      farbe:           json['farbe']              as String,
-      geburt:          json['geburt']             as String,
-      geschlecht:      json['geschlecht']         as String,
-      email:           json['email']              as String,
-      telefonPriv:     json['telefon_priv']       as String,
-      telefonGes:      json['telefon_ges']        as String,
-      telefonMobil:    json['telefon_mobil']      as String,
-      haltername:      json['Haltername']         as String,
-      adresse1:        json['adresse1']           as String,
-      adresse2:        json['adresse2']           as String,
-      adresse:         json['adresse']            as String,
-      strasse:         json['strasse']            as String,
-      plz:             json['plz']                as String,
-      land:            json['land']               as String,
-      ort:             json['ort']                as String,
-      fax:             json['fax']                as String,
-      halterAenderung: json['halter_aenderung']   as String,
-    );
-  }
+    // eine kleine Hilfsfunktion, um null→'' zu mappen
+    String safe(dynamic x) => x == null ? '' : x.toString();
 
-  Map<String, dynamic> toJson() {
-    return {
-      'tiername':           tiername,
-      'transponder':        transponder,
-      'tierart':            tierart,
-      'rasse':              rasse,
-      'farbe':              farbe,
-      'geburt':             geburt,
-      'geschlecht':         geschlecht,
-      'email':              email,
-      'telefon_priv':       telefonPriv,
-      'telefon_ges':        telefonGes,
-      'telefon_mobil':      telefonMobil,
-      'Haltername':         haltername,
-      'adresse1':           adresse1,
-      'adresse2':           adresse2,
-      'adresse':            adresse,
-      'strasse':            strasse,
-      'plz':                plz,
-      'land':               land,
-      'ort':                ort,
-      'fax':                fax,
-      'halter_aenderung':   halterAenderung,
-    };
+    return CoinSearch(
+      tiername:         safe(json['tiername']),
+      transponder:      safe(json['transponder']),
+      tierart:          safe(json['tierart']),
+      rasse:            safe(json['rasse']),
+      farbe:            safe(json['farbe']),
+      geburt:           safe(json['geburt']),
+      geschlecht:       safe(json['geschlecht']),
+      tierAenderung:    safe(json['tier_aenderung']),
+      email:            safe(json['email']),
+      telefonPriv:      safe(json['telefon_priv']),
+      telefonGes:       safe(json['telefon_ges']),
+      telefonMobil:     safe(json['telefon_mobil']),
+      haltername:       safe(json['haltername']),
+      adresse1:         safe(json['adresse1']),
+      adresse2:         safe(json['adresse2']),
+      adresse:          safe(json['adresse']),
+      strasse:          safe(json['strasse']),
+      plz:              safe(json['plz']),
+      land:             safe(json['land']),
+      ort:              safe(json['ort']),
+      fax:              safe(json['fax']),
+      halterAenderung:  safe(json['halter_aenderung']),
+    );
   }
 }

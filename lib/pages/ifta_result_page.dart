@@ -1,7 +1,3 @@
-// lib/pages/ifta_result_page.dart
-import 'dart:convert';               // für json.decode(...)
-import 'package:http/http.dart' as http;  // für http.get(...)
-
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/session_manager.dart';
@@ -34,61 +30,34 @@ class _IftaResultPageState extends State<IftaResultPage> {
 
   Future<void> _loadData() async {
     try {
-      // 1) Session holen
+      // 1) Hol Session-ID
       final sesid = await SessionManager.instance.getSesId(
-        username: 'apiuser',
-        password: 'geheimesPasswort',
+        username: 'apiuser',           // deine echten Credentials
+        password: 'geheimesPasswort',  // deine echten Credentials
       );
 
-      // 2) Debug: coin und sesid ausgeben
-      final coinParam = widget.coin.trim();
-      print('🔍 Suche nach coin="$coinParam" mit sesid="$sesid"');
+      // 2) Abruf der IFTA-Daten
+      final data = await ApiService.fetchIftaData(
+        coin: widget.coin.trim(),
+        sesid: sesid,
+      );
 
-      // 3) URL bauen und ausgeben
-      final uri = Uri.parse(
-        'https://www.tierregistrierung.de/mob_app/jiftacoins.php',
-      ).replace(queryParameters: {
-        'coin':  coinParam,
-        'sesid': sesid,
-      });
-      print('→ Request-URL: $uri');
+      // 3) Parsen der beiden Listen
+      final infoJsonList = data['ifta_coin_info'] as List<dynamic>;
+      final searchJsonList = data['ifta_coin_search'] as List<dynamic>;
 
-      // 4) Request senden
-      final resp = await http.get(uri);
-      print('← Status: ${resp.statusCode}');
-      print('← Body : ${resp.body}');
+      final infoList = infoJsonList
+          .map((e) => CoinInfo.fromJson(e as Map<String, dynamic>))
+          .toList();
 
-      if (resp.statusCode != 200) {
-        throw Exception('Server-Error: ${resp.statusCode}');
-      }
+      final searchList = searchJsonList
+          .map((e) => CoinSearch.fromJson(e as Map<String, dynamic>))
+          .toList();
 
-      // 5) Parsen (wie gehabt)
-      final dynamic decoded = json.decode(resp.body);
-      late Map<String, dynamic> parsed;
-      if (decoded is List && decoded.isNotEmpty && decoded.first is Map) {
-        parsed = Map.from(decoded.first as Map);
-      } else if (decoded is Map) {
-        parsed = Map.from(decoded);
-      } else {
-        parsed = {};
-      }
-
-      final infoList = (parsed['ifta_coin_info'] as List?)
-          ?.cast<Map<String, dynamic>>()
-          .toList() ??
-          [];
-      final searchList = (parsed['ifta_coin_search'] as List?)
-          ?.cast<Map<String, dynamic>>()
-          .toList() ??
-          [];
-
+      // 4) State aktualisieren
       setState(() {
-        _info = infoList.isNotEmpty
-            ? CoinInfo.fromJson(infoList.first)
-            : null;
-        _searchResults = searchList
-            .map((e) => CoinSearch.fromJson(e))
-            .toList();
+        _info = infoList.isNotEmpty ? infoList.first : null;
+        _searchResults = searchList;
         _isLoading = false;
       });
     } catch (e) {
@@ -98,7 +67,6 @@ class _IftaResultPageState extends State<IftaResultPage> {
       });
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -140,36 +108,43 @@ class _IftaResultPageState extends State<IftaResultPage> {
               ),
               const Divider(height: 32),
             ],
+
             const Text(
               'Search Results',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            _searchResults.isEmpty
-                ? const Expanded(
-              child: Center(child: Text('No search results found.')),
-            )
-                : Expanded(
-              child: ListView.separated(
-                itemCount: _searchResults.length,
-                separatorBuilder: (_, __) => const Divider(),
-                itemBuilder: (_, i) {
-                  final item = _searchResults[i];
-                  return ListTile(
-                    title: Text(item.tiername),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Transponder: ${item.transponder}'),
-                        Text('${item.rasse}, ${item.farbe}'),
-                        Text('Born: ${item.geburt}'),
-                      ],
-                    ),
-                    isThreeLine: true,
-                  );
-                },
+
+            // Wenn keine Ergebnisse, Hinweis anzeigen…
+            if (_searchResults.isEmpty)
+              const Expanded(
+                child: Center(child: Text('No search results found.')),
+              )
+            else
+            // … sonst ListView
+              Expanded(
+                child: ListView.separated(
+                  itemCount: _searchResults.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (_, i) {
+                    final item = _searchResults[i];
+                    return ListTile(
+                      title: Text(item.tiername ?? '–'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Tel Nummer: ${item.telefonPriv.isNotEmpty ? item.telefonPriv : '–'}'),
+                          Text('Halter: ${item.haltername.isNotEmpty ? item.haltername : '–'}'),
+                          Text('Transponder: ${item.transponder ?? '–'}'),
+                          Text('${item.rasse ?? '–'}, ${item.farbe ?? '–'}'),
+                          Text('Born: ${item.geburt ?? '–'}'),
+                        ],
+                      ),
+                      isThreeLine: true,
+                    );
+                  },
+                ),
               ),
-            ),
           ],
         ),
       ),

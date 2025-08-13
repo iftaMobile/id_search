@@ -1,9 +1,11 @@
-// lib/services/api_service.dart
-
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
+  /// 1) Login
+  ///
+  /// Calls ifta_login.php?tag=login&uname=…&password=…
+  /// Handles both Array- and Object-root JSON.
   static Future<String> login({
     required String username,
     required String password,
@@ -18,38 +20,32 @@ class ApiService {
 
     final resp = await http.get(uri);
     if (resp.statusCode != 200) {
-      throw Exception('Login fehlgeschlagen: ${resp.statusCode}');
+      throw Exception('Login failed: ${resp.statusCode}');
     }
 
-    // Debug: siehe komplettes JSON im Log
-    print('LOGIN JSON: ${resp.body}');
-
-    // Dynamisch decodieren
-    final dynamic decoded = json.decode(resp.body);
-    late Map<String, dynamic> result;
-
-    if (decoded is List) {
-      // Array-Wurzel: nimm das erste Element
-      result = Map<String, dynamic>.from(decoded.first as Map);
-    } else if (decoded is Map) {
-      // Objekt-Wurzel: direkt casten
-      result = Map<String, dynamic>.from(decoded);
+    // Decode the JSON, which may be an Array or an Object
+    final dynamic payload = json.decode(resp.body);
+    late Map<String, dynamic> map;
+    if (payload is List && payload.isNotEmpty && payload.first is Map) {
+      map = Map<String, dynamic>.from(payload.first as Map);
+    } else if (payload is Map) {
+      map = Map<String, dynamic>.from(payload);
     } else {
-      throw Exception('Unerwartetes Login-Format: ${decoded.runtimeType}');
+      throw Exception('Unexpected login response format: ${payload.runtimeType}');
     }
 
-    // Jetzt nur noch auf sesid prüfen
-    final sesid = result['sesid'];
+    final sesid = map['sesid'];
     if (sesid == null || sesid is! String) {
-      throw Exception('Login-Error: ${resp.body}');
+      throw Exception('No sesid in response: ${resp.body}');
     }
-
     return sesid;
   }
 
-// … dein fetchIftaData bleibt unverändert …
-
-  /// IFTA-Daten abrufen (unsere alte Methode, wird weiterverwendet)
+  /// 2) fetchIftaData
+  ///
+  /// Calls jiftacoins.php?coin=…&sesid=…
+  /// Extracts the two lists under the uppercase keys
+  /// and re-exports them as lowercase keys for your UI code.
   static Future<Map<String, dynamic>> fetchIftaData({
     required String coin,
     required String sesid,
@@ -63,45 +59,21 @@ class ApiService {
 
     final resp = await http.get(uri);
     if (resp.statusCode != 200) {
-      throw Exception('Server-Error: ${resp.statusCode}');
+      throw Exception('Server error: ${resp.statusCode}');
     }
 
-    // 1) Roh-JSON ausgeben
-    print('=== IFTA RAW JSON ===\n${resp.body}\n=== end RAW ===');
+    // Decode into a Map directly (your JSON root is an Object)
+    final Map<String, dynamic> decoded =
+    json.decode(resp.body) as Map<String, dynamic>;
 
-    // 2) JSON dekodieren
-    final dynamic decoded = json.decode(resp.body);
-    late Map<String, dynamic> parsed;
-    if (decoded is Map) {
-      parsed = decoded.cast<String, dynamic>();
-    } else if (decoded is List && decoded.isNotEmpty && decoded.first is Map) {
-      parsed = (decoded.first as Map).cast<String, dynamic>();
-    } else {
-      parsed = {};
-    }
+    // Pull out the uppercase keys
+    final rawInfo = decoded['IFTA_COIN_INFO']   as List<dynamic>? ?? [];
+    final rawSearch = decoded['IFTA_COIN_SEARCH'] as List<dynamic>? ?? [];
 
-    // 3) Welche Keys hat das Map wirklich?
-    print('parsed.keys: ${parsed.keys.toList()}');
-
-    // 4) Raw-Listen holen – sowohl Groß- als auch Klein-Key abfragen
-    final List<dynamic> rawInfo = parsed['IFTA_COIN_INFO']
-    as List<dynamic>? ??
-        parsed['ifta_coin_info'] as List<dynamic>? ??
-        [];
-    final List<dynamic> rawSearch = parsed['IFTA_COIN_SEARCH']
-    as List<dynamic>? ??
-        parsed['ifta_coin_search'] as List<dynamic>? ??
-        [];
-
-    // 5) Listengrößen ausgeben
-    print('rawInfo.length: ${rawInfo.length}');
-    print('rawSearch.length: ${rawSearch.length}');
-
-    // 6) endgültige Struktur zurückgeben
+    // Return them under lowercase keys your UI expects:
     return {
-      'ifta_coin_info': rawInfo,
+      'ifta_coin_info':   rawInfo,
       'ifta_coin_search': rawSearch,
     };
   }
 }
-
