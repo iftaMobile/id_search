@@ -1,25 +1,20 @@
-import 'package:flutter/material.dart';
-import 'pages/search_page.dart';
-import 'package:id_search/services/api_service.dart';
+// lib/main.dart
 
-void main() async {
+import 'package:flutter/material.dart';
+import 'pages/login_page.dart';
+
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final result = await ApiService.login(
-    username: 'testuser',
-    password: 'testpass',
-  );
-  print('Login-Response: $result');
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
-
+  const MyApp({super.key});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'IFTA Suche',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const SearchPage(),
+      title: 'IFTA App',
+      home: const LoginPage(),
     );
   }
 }

@@ -1,7 +1,10 @@
 // lib/pages/ifta_result_page.dart
+import 'dart:convert';               // für json.decode(...)
+import 'package:http/http.dart' as http;  // für http.get(...)
 
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/session_manager.dart';
 import '../models/coin_info.dart';
 import '../models/coin_search.dart';
 
@@ -31,22 +34,61 @@ class _IftaResultPageState extends State<IftaResultPage> {
 
   Future<void> _loadData() async {
     try {
-      // holt intern die Session-ID und ruft dann den IFTA-Endpoint auf
-      final data = await ApiService.fetchIftaData(
-        coin: widget.coin,
+      // 1) Session holen
+      final sesid = await SessionManager.instance.getSesId(
+        username: 'apiuser',
+        password: 'geheimesPasswort',
       );
 
-      final infoList = (data['ifta_coin_info'] as List)
-          .map((e) => CoinInfo.fromJson(e as Map<String, dynamic>))
-          .toList();
+      // 2) Debug: coin und sesid ausgeben
+      final coinParam = widget.coin.trim();
+      print('🔍 Suche nach coin="$coinParam" mit sesid="$sesid"');
 
-      final searchList = (data['ifta_coin_search'] as List)
-          .map((e) => CoinSearch.fromJson(e as Map<String, dynamic>))
-          .toList();
+      // 3) URL bauen und ausgeben
+      final uri = Uri.parse(
+        'https://www.tierregistrierung.de/mob_app/jiftacoins.php',
+      ).replace(queryParameters: {
+        'coin':  coinParam,
+        'sesid': sesid,
+      });
+      print('→ Request-URL: $uri');
+
+      // 4) Request senden
+      final resp = await http.get(uri);
+      print('← Status: ${resp.statusCode}');
+      print('← Body : ${resp.body}');
+
+      if (resp.statusCode != 200) {
+        throw Exception('Server-Error: ${resp.statusCode}');
+      }
+
+      // 5) Parsen (wie gehabt)
+      final dynamic decoded = json.decode(resp.body);
+      late Map<String, dynamic> parsed;
+      if (decoded is List && decoded.isNotEmpty && decoded.first is Map) {
+        parsed = Map.from(decoded.first as Map);
+      } else if (decoded is Map) {
+        parsed = Map.from(decoded);
+      } else {
+        parsed = {};
+      }
+
+      final infoList = (parsed['ifta_coin_info'] as List?)
+          ?.cast<Map<String, dynamic>>()
+          .toList() ??
+          [];
+      final searchList = (parsed['ifta_coin_search'] as List?)
+          ?.cast<Map<String, dynamic>>()
+          .toList() ??
+          [];
 
       setState(() {
-        _info = infoList.isNotEmpty ? infoList.first : null;
-        _searchResults = searchList;
+        _info = infoList.isNotEmpty
+            ? CoinInfo.fromJson(infoList.first)
+            : null;
+        _searchResults = searchList
+            .map((e) => CoinSearch.fromJson(e))
+            .toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -57,6 +99,7 @@ class _IftaResultPageState extends State<IftaResultPage> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -64,6 +107,7 @@ class _IftaResultPageState extends State<IftaResultPage> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
     if (_errorMessage != null) {
       return Scaffold(
         appBar: AppBar(title: Text('IFTA Coin ${widget.coin}')),
