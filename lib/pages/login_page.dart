@@ -1,9 +1,10 @@
 // lib/pages/login_page.dart
 
 import 'package:flutter/material.dart';
-import 'package:id_search/pages/search_page.dart';
+import 'package:id_search/pages/first_page.dart';
+import 'package:id_search/pages/search_page_id.dart';
 import 'package:id_search/services/session_manager.dart';
-import 'ifta_result_page.dart';
+import 'id_result_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -46,7 +47,7 @@ class _LoginPageState extends State<LoginPage> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const SearchPage()),
+        MaterialPageRoute(builder: (_) => const FirstPage()),
       );
 
     } catch (e) {
@@ -64,6 +65,7 @@ class _LoginPageState extends State<LoginPage> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextField(
               controller: _userCtrl,

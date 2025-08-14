@@ -4,19 +4,19 @@ import '../services/session_manager.dart';
 import '../models/coin_info.dart';
 import '../models/coin_search.dart';
 
-class IftaResultPage extends StatefulWidget {
+class IdResultPage extends StatefulWidget {
   final String coin;
 
-  const IftaResultPage({
+  const IdResultPage({
     Key? key,
     required this.coin,
   }) : super(key: key);
 
   @override
-  _IftaResultPageState createState() => _IftaResultPageState();
+  _IdResultPageState createState() => _IdResultPageState();
 }
 
-class _IftaResultPageState extends State<IftaResultPage> {
+class _IdResultPageState extends State<IdResultPage> {
   CoinInfo? _info;
   List<CoinSearch> _searchResults = [];
   bool _isLoading = true;

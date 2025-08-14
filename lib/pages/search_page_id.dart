@@ -1,16 +1,16 @@
-// lib/pages/search_page.dart
+// lib/pages/search_page_id.dart
 
 import 'package:flutter/material.dart';
-import 'ifta_result_page.dart';
+import 'id_result_page.dart';
 
-class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+class SearchPageId extends StatefulWidget {
+  const SearchPageId({super.key});
 
   @override
-  _SearchPageState createState() => _SearchPageState();
+  _SearchPageIdState createState() => _SearchPageIdState();
 }
 
-class _SearchPageState extends State<SearchPage> {
+class _SearchPageIdState extends State<SearchPageId> {
   final _coinController = TextEditingController();
 
   @override
@@ -31,7 +31,7 @@ class _SearchPageState extends State<SearchPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => IftaResultPage(coin: coin),
+        builder: (_) => IdResultPage(coin: coin),
       ),
     );
   }
