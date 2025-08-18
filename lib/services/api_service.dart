@@ -144,46 +144,48 @@ class ApiService {
         .toList();
   }
 
-  static Future<List<TransponderMatch>> fetchTattooData({
+  static Future<List<TattooMatch>> fetchTattooMatches({
     required String tattooLeft,
     required String tattooRight,
     required String sesid,
   }) async {
-    final imei = await _getDeviceId();
+    // Build URI
     final uri = Uri.parse('$_baseMobApp/jtatoosresults2.php').replace(
       queryParameters: {
         'tatol': tattooLeft,
         'tator': tattooRight,
         'limit': '50',
-        'imei': imei,
         'sesid': sesid,
       },
     );
 
-    // —— DEBUG OUTPUT ——
-    debugPrint('📡 Tattoo search URL:\n${uri.toString()}');
+    // Debug output
+    debugPrint('🔍 Tattoo request URL: $uri');
 
-    final resp = await http.post(uri);
+    // HTTP POST
+    final response = await http.post(uri);
 
-    debugPrint('📥 Status code: ${resp.statusCode}');
-    debugPrint('📄 Response body:\n${resp.body}');
-    // ———————
+    debugPrint('📥 Status code: ${response.statusCode}');
+    debugPrint('📄 Response body:\n${response.body}');
 
-    if (resp.statusCode != 200) {
-      throw Exception('Tattoo request failed: ${resp.statusCode}');
+    if (response.statusCode != 200) {
+      throw Exception('Tattoo request failed: ${response.statusCode}');
     }
 
-    final raw = json.decode(resp.body) as Map<String, dynamic>;
-    final listJson = raw['IFTA_MATCH'] as List<dynamic>? ?? [];
+    // Decode and extract array (supports both old/new keys)
+    final raw = json.decode(response.body) as Map<String, dynamic>;
+    final List<dynamic> data =
+    (raw['results'] ?? raw['IFTA_MATCH'] ?? []) as List<dynamic>;
 
-    return listJson
+    // Map to models
+    return data
         .cast<Map<String, dynamic>>()
-        .map(TransponderMatch.fromJson)
+        .map(TattooMatch.fromJson)
         .toList();
   }
-
-
-
-
-
 }
+
+
+
+
+

@@ -1,7 +1,7 @@
 // lib/pages/tattoo_result_page.dart
 
 import 'package:flutter/material.dart';
-import '../models/transponder_match.dart';
+import '../models/tattoo_match.dart';
 import '../services/api_service.dart';
 import '../services/session_manager.dart';
 
@@ -20,7 +20,7 @@ class TattooResultPage extends StatefulWidget {
 }
 
 class _TattooResultPageState extends State<TattooResultPage> {
-  List<TransponderMatch> _results = [];
+  List<TattooMatch> _results = [];
   bool _isLoading = true;
   String? _error;
 
@@ -33,8 +33,7 @@ class _TattooResultPageState extends State<TattooResultPage> {
   Future<void> _loadMatches() async {
     try {
       final sesid = await SessionManager.instance.getAnonymousSesId();
-
-      final matches = await ApiService.fetchTattooData(
+      final matches = await ApiService.fetchTattooMatches(
         tattooLeft: widget.tattooLeft.trim(),
         tattooRight: widget.tattooRight.trim(),
         sesid: sesid,
@@ -61,6 +60,7 @@ class _TattooResultPageState extends State<TattooResultPage> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(title: Text(title)),
@@ -79,18 +79,35 @@ class _TattooResultPageState extends State<TattooResultPage> {
           separatorBuilder: (_, __) => const Divider(),
           itemBuilder: (_, i) {
             final m = _results[i];
+
+            // Build a single address string out of its parts
+            final addressParts = <String>[
+              if ((m.strasse ?? '').isNotEmpty) m.strasse!,
+              if ((m.plz ?? '').isNotEmpty) m.plz!,
+              if ((m.ort ?? '').isNotEmpty) m.ort!,
+            ];
+            final address =
+            addressParts.isEmpty ? null : addressParts.join(' ');
+
             return ListTile(
+              contentPadding: EdgeInsets.zero,
               title: Text(m.tiername ?? '–'),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Tel: ${m.telefonPriv ?? '–'}'),
+                  if (m.transponder != null)
+                    Text('Transponder: ${m.transponder}'),
+                  if (m.tierart != null) Text('Tierart: ${m.tierart}'),
+                  Text(
+                    'Rasse/Farbe: ${m.rasse ?? '–'} / ${m.farbe ?? '–'}',
+                  ),
+                  Text('Geburt: ${m.geburt ?? '–'}'),
+                  if (address != null) Text('Adresse: $address'),
                   Text('Halter: ${m.haltername ?? '–'}'),
-                  Text('Rasse/Farbe: ${m.rasse ?? '–'}, ${m.farbe ?? '–'}'),
-                  Text('Geboren: ${m.geburt ?? '–'}'),
+                  Text('Tel: ${m.telefonPriv ?? '–'}'),
                 ],
               ),
-              isThreeLine: true,
+              isThreeLine: false,
             );
           },
         ),
