@@ -31,10 +31,11 @@ class _IdResultPageState extends State<IdResultPage> {
   Future<void> _loadData() async {
     try {
       // 1) Hol Session-ID
-      final sesid = await SessionManager.instance.getSesId(
-        username: 'apiuser',           // deine echten Credentials
-        password: 'geheimesPasswort',  // deine echten Credentials
-      );
+      final sesid = await SessionManager.instance.getAnonymousSesId();
+        //final sesid = await SessionManager.instance.getSesId(
+        //username: 'apiuser',           // deine echten Credentials
+       // password: 'geheimesPasswort',  // deine echten Credentials
+     // );
 
       // 2) Abruf der IFTA-Daten
       final data = await ApiService.fetchIftaData(

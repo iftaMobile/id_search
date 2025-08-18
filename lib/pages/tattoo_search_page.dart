@@ -1,40 +1,45 @@
-// lib/pages/tattoo_search_page.dart
-
 import 'package:flutter/material.dart';
-import 'tattoo_result_page.dart';  // <-- Import der Result-Page
+import 'tattoo_result_page.dart';
 
 class TattooSearchPage extends StatefulWidget {
+  const TattooSearchPage({Key? key}) : super(key: key);
+
   @override
   _TattooSearchPageState createState() => _TattooSearchPageState();
 }
 
 class _TattooSearchPageState extends State<TattooSearchPage> {
-  final TextEditingController _tattooController = TextEditingController();
-  String? _error;
+  final TextEditingController _leftController = TextEditingController();
+  final TextEditingController _rightController = TextEditingController();
+  String? _errorText;
 
   @override
   void dispose() {
-    _tattooController.dispose();
+    _leftController.dispose();
+    _rightController.dispose();
     super.dispose();
   }
 
-  void _searchTattoo() {
-    FocusScope.of(context).unfocus();
-    final code = _tattooController.text.trim();
+  void _onSearch() {
+    final left = _leftController.text.trim();
+    final right = _rightController.text.trim();
 
-    if (code.isEmpty) {
+    if (left.isEmpty && right.isEmpty) {
       setState(() {
-        _error = 'Bitte einen Tattoo-Code eingeben';
+        _errorText = 'Bitte mindestens ein Tattoo eingeben';
       });
       return;
     }
 
-    // Navigation zur Result-Page – links befüllt, rechts leer
+    setState(() {
+      _errorText = null;
+    });
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => TattooResultPage(
-          leftTattoo: code,
-          rightTattoo: '',
+          tattooLeft: left,
+          tattooRight: right,
         ),
       ),
     );
@@ -43,27 +48,39 @@ class _TattooSearchPageState extends State<TattooSearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Tattoo-Suche')),
+      appBar: AppBar(title: const Text('Tattoo-Suche')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             TextField(
-              controller: _tattooController,
-              decoration: InputDecoration(
-                labelText: 'Tattoo-Code',
-                errorText: _error,
+              controller: _leftController,
+              decoration: const InputDecoration(
+                labelText: 'Tattoo linkes Ohr',
+                border: OutlineInputBorder(),
               ),
-              textInputAction: TextInputAction.search,
-              onSubmitted: (_) => _searchTattoo(),
+              keyboardType: TextInputType.text,
             ),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _searchTattoo,
-              child: Text('Suche starten'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _rightController,
+              decoration: const InputDecoration(
+                labelText: 'Tattoo rechtes Ohr',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.text,
             ),
-            // optional: hier könnten weiterhin lokale Ergebnisse stehen,
-            // wir lassen sie aber weg, da die Result-Page alles übernimmt.
+            const SizedBox(height: 16),
+            if (_errorText != null)
+              Text(
+                _errorText!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            ElevatedButton.icon(
+              onPressed: _onSearch,
+              icon: const Icon(Icons.search),
+              label: const Text('Suchen'),
+            ),
           ],
         ),
       ),

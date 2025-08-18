@@ -58,6 +58,24 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _onLoginAnon() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final sesid = await SessionManager.instance.getAnonymousSesId();
+      // now sesid is stored and you can navigate on exactly the same path
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const FirstPage()),
+      );
+    } catch (e) {
+      setState(() {
+        _error = 'Fehler beim anonymen Login: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,27 +85,28 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            TextField(
-              controller: _userCtrl,
-              decoration: const InputDecoration(labelText: 'Username'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _passCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Passwort'),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-            ],
+            // … your existing Username/Password fields …
             const SizedBox(height: 24),
+
+            // regular login button
             ElevatedButton(
               onPressed: _isLoading ? null : _onLogin,
               child: _isLoading
                   ? const CircularProgressIndicator(strokeWidth: 2)
                   : const Text('Login'),
             ),
+
+            // new: anon button
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: _isLoading ? null : _onLoginAnon,
+              child: const Text('Anonym fortfahren'),
+            ),
+
+            if (_error != null) ...[
+              const SizedBox(height: 12),
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+            ],
           ],
         ),
       ),

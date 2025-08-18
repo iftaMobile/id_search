@@ -1,17 +1,18 @@
-import 'package:flutter/material.dart';
+// lib/pages/tattoo_result_page.dart
 
-import '../models/tattoo_match.dart';
+import 'package:flutter/material.dart';
+import '../models/transponder_match.dart';
 import '../services/api_service.dart';
 import '../services/session_manager.dart';
 
 class TattooResultPage extends StatefulWidget {
-  final String leftTattoo;
-  final String rightTattoo;
+  final String tattooLeft;
+  final String tattooRight;
 
   const TattooResultPage({
     Key? key,
-    required this.leftTattoo,
-    required this.rightTattoo,
+    required this.tattooLeft,
+    required this.tattooRight,
   }) : super(key: key);
 
   @override
@@ -19,141 +20,79 @@ class TattooResultPage extends StatefulWidget {
 }
 
 class _TattooResultPageState extends State<TattooResultPage> {
-  List<TattooMatch> _leftResults = [];
-  List<TattooMatch> _rightResults = [];
-  bool _loading = true;
+  List<TransponderMatch> _results = [];
+  bool _isLoading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _loadMatches();
   }
 
-  /// Combines initial + exact tattoo lookup
-  Future<List<TattooMatch>> _fetchFullTattoo(String code, String sesid) async {
+  Future<void> _loadMatches() async {
     try {
-      final initial = await ApiService.fetchTattooData(
-        tattoo: code,
+      final sesid = await SessionManager.instance.getAnonymousSesId();
+
+      final matches = await ApiService.fetchTattooData(
+        tattooLeft: widget.tattooLeft.trim(),
+        tattooRight: widget.tattooRight.trim(),
         sesid: sesid,
       );
 
-      if (initial.isEmpty || initial.first.dbid == null || initial.first.qid == null) {
-        return [];
-      }
-
-      return await ApiService.fetchExactTattoo(
-        dbid: initial.first.dbid!,
-        qid: initial.first.qid!,
-        tattoo: code,
-      );
-    } catch (e) {
-      debugPrint('Tattoo fetch failed for $code: $e');
-      return [];
-    }
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final sesid = await SessionManager.instance.getSesId(
-        username: 'apiuser',
-        password: 'geheimesPasswort',
-      );
-
-      final results = await Future.wait<List<TattooMatch>>([
-        widget.leftTattoo.isNotEmpty
-            ? _fetchFullTattoo(widget.leftTattoo, sesid)
-            : Future.value(<TattooMatch>[]),
-        widget.rightTattoo.isNotEmpty
-            ? _fetchFullTattoo(widget.rightTattoo, sesid)
-            : Future.value(<TattooMatch>[]),
-      ]);
-
       setState(() {
-        _leftResults = results[0];
-        _rightResults = results[1];
-        _loading = false;
+        _results = matches;
+        _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _error = e.toString();
-        _loading = false;
+        _isLoading = false;
       });
     }
   }
 
-  Widget _buildSection(String title, List<TattooMatch> list) {
-    if (list.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Center(child: Text('$title\nKein Eintrag gefunden')),
-      );
-    }
-
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: ListView.separated(
-              itemCount: list.length,
-              separatorBuilder: (_, __) => const Divider(),
-              itemBuilder: (_, i) {
-                final m = list[i];
-                return ListTile(
-                  title: Text(m.tiername ?? '–'),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Tattoo: ${m.tattoo ?? '–'}'),
-                      Text('Halter: ${m.haltername ?? '–'}'),
-                      Text('Tel (privat): ${m.telefonPriv ?? '–'}'),
-                      Text('Rasse/Farbe: ${m.rasse ?? '–'} / ${m.farbe ?? '–'}'),
-                      Text('Geboren: ${m.geburt ?? '–'}'),
-                    ],
-                  ),
-                  isThreeLine: true,
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
+    final title = 'Tattoo ${widget.tattooLeft} / ${widget.tattooRight}';
+
+    if (_isLoading) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
-
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Tattoo-Ergebnis')),
+        appBar: AppBar(title: Text(title)),
         body: Center(child: Text('Fehler: $_error')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tattoo-Ergebnis')),
+      appBar: AppBar(title: Text(title)),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            if (widget.leftTattoo.isNotEmpty)
-              _buildSection('Linkes Ohr: ${widget.leftTattoo}', _leftResults),
-            if (widget.rightTattoo.isNotEmpty)
-              _buildSection('Rechtes Ohr: ${widget.rightTattoo}', _rightResults),
-          ],
+        child: _results.isEmpty
+            ? const Center(child: Text('Kein Eintrag gefunden.'))
+            : ListView.separated(
+          itemCount: _results.length,
+          separatorBuilder: (_, __) => const Divider(),
+          itemBuilder: (_, i) {
+            final m = _results[i];
+            return ListTile(
+              title: Text(m.tiername ?? '–'),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Tel: ${m.telefonPriv ?? '–'}'),
+                  Text('Halter: ${m.haltername ?? '–'}'),
+                  Text('Rasse/Farbe: ${m.rasse ?? '–'}, ${m.farbe ?? '–'}'),
+                  Text('Geboren: ${m.geburt ?? '–'}'),
+                ],
+              ),
+              isThreeLine: true,
+            );
+          },
         ),
       ),
     );

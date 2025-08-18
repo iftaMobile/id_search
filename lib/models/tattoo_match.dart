@@ -1,43 +1,49 @@
 // lib/models/tattoo_match.dart
 
 class TattooMatch {
-  final String? dbid;
-  final String? qid;
-  final String? tattoo;
-  final String? haltername;
-  final String? tiername;
-  final String? transponder;
-  final String? telefonPriv;
+  final String? id;
+  final String? name;
+  final String? tierart;
   final String? rasse;
   final String? farbe;
   final String? geburt;
-  // falls du noch weitere Felder brauchst: hier ergänzen
+  final String? plz;
+  final String? ort;
+  final String? strasse;
+  final String? owner;
+  final String? telefonPriv;
 
   TattooMatch({
-    this.dbid,
-    this.qid,
-    this.tattoo,
-    this.haltername,
-    this.tiername,
-    this.transponder,
-    this.telefonPriv,
+    this.id,
+    this.name,
+    this.tierart,
     this.rasse,
     this.farbe,
     this.geburt,
+    this.plz,
+    this.ort,
+    this.strasse,
+    this.owner,
+    this.telefonPriv,
   });
 
   factory TattooMatch.fromJson(Map<String, dynamic> json) {
+    // strip HTML tags if necessary
+    String _strip(String? html) =>
+        html?.replaceAll(RegExp(r'<[^>]*>'), '') ?? '';
+
     return TattooMatch(
-      dbid:         json['dbid'] as String?,
-      qid:          json['qid'] as String?,
-      tattoo:       json['tattoo'] as String?,
-      haltername:   json['haltername'] as String?,
-      tiername:     json['tiername'] as String?,
-      transponder:  json['transponder'] as String?,
-      telefonPriv:  json['telefon_priv'] as String?,  // check JSON-Key!
-      rasse:        json['rasse'] as String?,
-      farbe:        json['farbe'] as String?,
-      geburt:       json['geburt'] as String?,
+      id:      json['id']       as String?,
+      name:    _strip(json['tatol'] as String?),   // or another field
+      tierart: json['tierart']  as String?,
+      rasse:   json['rasse']    as String?,
+      farbe:   json['farbe']    as String?,
+      geburt:  json['geburt']   as String?,
+      plz:     json['plz']      as String?,
+      ort:     json['ort']      as String?,
+      strasse: json['strasse']  as String?,
+      owner:   json['owner']    as String?,
+      telefonPriv:  json['telefon_priv']  as String?,
     );
   }
 }

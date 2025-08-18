@@ -1,5 +1,3 @@
-// lib/services/session_manager.dart
-
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:id_search/services/api_service.dart';
 
@@ -31,7 +29,29 @@ class SessionManager {
     return newSesid;
   }
 
-  /// Optional: Session-ID löschen (z. B. beim Logout)
+  /// Neue Methode: anonyme Session-ID über Geräte-ID
+  Future<String> getAnonymousSesId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString(_keySesId);
+    if (stored != null && stored.isNotEmpty) {
+      return stored;
+    }
+
+    // Geräte-ID von ApiService holen
+    final deviceId = await ApiService.getDeviceId();
+
+    // Devices-ID als "sesid" speichern
+    await prefs.setString(_keySesId, deviceId);
+    return deviceId;
+  }
+
+  /// Nur gespeicherte Session-ID zurückliefern (ohne Login/Abruf)
+  Future<String?> get storedSesId async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keySesId);
+  }
+
+  /// Optional: Session-ID löschen (Logout)
   Future<void> clearSesId() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keySesId);

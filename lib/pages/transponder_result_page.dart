@@ -31,10 +31,11 @@ class _TransponderResultPageState extends State<TransponderResultPage> {
   Future<void> _loadMatches() async {
     try {
       // 1) Session-ID holen
-      final sesid = await SessionManager.instance.getSesId(
-        username: 'apiuser',
-        password: 'geheimesPasswort',
-      );
+      final sesid = await SessionManager.instance.getAnonymousSesId();
+      // final sesid = await SessionManager.instance.getSesId(
+      //   username: 'apiuser',
+      //   password: 'geheimesPasswort',
+      // );
 
       // 2) Hier das richtige Fetch: liefert List<TransponderMatch>
       final matches = await ApiService.fetchTransponderData(

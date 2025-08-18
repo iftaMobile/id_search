@@ -1,13 +1,15 @@
 // lib/services/api_service.dart
+import 'package:flutter/foundation.dart';
 
 import 'dart:io';
 import 'dart:convert';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:http/http.dart' as http;
+import 'package:id_search/models/tattoo_match.dart';
 import '../models/coin_info.dart';
 import '../models/coin_search.dart';
 import '../models/transponder_match.dart';
-import '../models/tattoo_match.dart';
+
 
 class ApiService {
   static const String _baseMobApp = 'https://www.tierregistrierung.de/mob_app';
@@ -142,97 +144,46 @@ class ApiService {
         .toList();
   }
 
-  /// 4b) Tattoo-Suche (mob_app)
-  ///     liefert dbid/qid, falls vorhanden (ansonsten leere Liste)
-  static Future<List<TattooMatch>> fetchTattooData({
-    required String tattoo,
+  static Future<List<TransponderMatch>> fetchTattooData({
+    required String tattooLeft,
+    required String tattooRight,
     required String sesid,
   }) async {
     final imei = await _getDeviceId();
-    final uri = Uri.parse('$_baseMobApp/search_ifta_japp.php').replace(
+    final uri = Uri.parse('$_baseMobApp/jtatoosresults2.php').replace(
       queryParameters: {
-        'tag':         'search',
-        'transponder': tattoo, // ✅ use 'transponder' instead of 'tattoo'
-        'imei':        imei,
-        'sesid':       sesid,
+        'tatol': tattooLeft,
+        'tator': tattooRight,
+        'limit': '50',
+        'imei': imei,
+        'sesid': sesid,
       },
     );
 
-    final resp = await http.get(uri);
+    // —— DEBUG OUTPUT ——
+    debugPrint('📡 Tattoo search URL:\n${uri.toString()}');
+
+    final resp = await http.post(uri);
+
+    debugPrint('📥 Status code: ${resp.statusCode}');
+    debugPrint('📄 Response body:\n${resp.body}');
+    // ———————
+
     if (resp.statusCode != 200) {
       throw Exception('Tattoo request failed: ${resp.statusCode}');
     }
 
-    final raw      = json.decode(resp.body) as Map<String, dynamic>;
+    final raw = json.decode(resp.body) as Map<String, dynamic>;
     final listJson = raw['IFTA_MATCH'] as List<dynamic>? ?? [];
-    return listJson
-        .cast<Map<String, dynamic>>()
-        .map(TattooMatch.fromJson)
-        .where((m) =>
-    m.dbid?.isNotEmpty == true && m.qid?.isNotEmpty == true)
-        .toList();
-  }
 
-  /// 5a) Exakte Transponder-Abfrage (tier_search2)
-  static Future<List<TransponderMatch>> fetchExactTransponder({
-    required String dbid,
-    required String qid,
-    required String transponder,
-  }) async {
-    final uri = Uri.parse('$_baseExact/wwdb_exact.php').replace(
-      queryParameters: {
-        'dbid':        dbid,
-        'qid':         qid,
-        'transponder': transponder,
-      },
-    );
-    final resp = await http.get(uri);
-    if (resp.statusCode != 200) {
-      throw Exception('Exact transponder request failed: ${resp.statusCode}');
-    }
-
-    final raw      = json.decode(resp.body) as Map<String, dynamic>;
-    final listJson = raw['IFTA_MATCH'] as List<dynamic>? ?? [];
     return listJson
         .cast<Map<String, dynamic>>()
         .map(TransponderMatch.fromJson)
-        .where((m) =>
-    m.transponder?.isNotEmpty == true ||
-        m.haltername?.isNotEmpty   == true ||
-        m.tiername?.isNotEmpty     == true)
         .toList();
   }
 
-  /// 5b) Exakte Tattoo-Abfrage (tier_search2)
-  static Future<List<TattooMatch>> fetchExactTattoo({
-    required String dbid,
-    required String qid,
-    required String tattoo,
-  }) async {
-    final uri = Uri.parse('$_baseExact/wwdb_exact.php').replace(
-      queryParameters: {
-        'dbid':   dbid,
-        'qid':    qid,
-        'tattoo': tattoo,
-      },
-    );
 
-    final resp = await http.get(uri);
-    if (resp.statusCode != 200) {
-      throw Exception('Exact tattoo request failed: ${resp.statusCode}');
-    }
 
-    final raw      = json.decode(resp.body) as Map<String, dynamic>;
-    final listJson = raw['IFTA_MATCH'] as List<dynamic>? ?? [];
 
-    return listJson
-        .cast<Map<String, dynamic>>()
-        .map(TattooMatch.fromJson)
-        .where((m) =>
-    (m.tattoo?.isNotEmpty == true) ||
-        (m.haltername?.isNotEmpty == true) ||
-        (m.tiername?.isNotEmpty == true))
-        .toList();
-  }
 
 }
