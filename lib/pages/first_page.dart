@@ -1,8 +1,10 @@
 // Gebaut von Marc
 
 import 'package:flutter/material.dart';
+import 'package:id_search/pages/login_page.dart';
 import 'package:id_search/pages/search_page_id.dart';
 import 'package:id_search/pages/search_page_transponder.dart';
+import 'package:id_search/pages/tattoo_search_page.dart';
 import 'datenschutz_page.dart';
 // import 'package:ifta_mobile/LoginPage.dart';
  import 'package:url_launcher/url_launcher.dart';
@@ -83,7 +85,7 @@ class _FirstPageState extends State<FirstPage> {
             ),
              onPressed: () => Navigator.push(
                context,
-               MaterialPageRoute(builder: (context) => const SearchPageId()),
+               MaterialPageRoute(builder: (context) => const LoginPage()),
              ),
           ),
           IconButton(
@@ -157,7 +159,7 @@ class _FirstPageState extends State<FirstPage> {
                     ),
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const FirstPage()),
+                      MaterialPageRoute(builder: (context) => const LoginPage()),
                     ),
                   ),
 
@@ -227,7 +229,7 @@ class _FirstPageState extends State<FirstPage> {
                       imageSize: imageSize,
                       onPressed: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SearchPageId()),
+                        MaterialPageRoute(builder: (context) =>  TattooSearchPage()),
                       ),
                     ),
                     _buildGameButton(
@@ -245,7 +247,7 @@ class _FirstPageState extends State<FirstPage> {
                       imageSize: imageSize,
                       onPressed: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const SearchPageId()),
+                        MaterialPageRoute(builder: (context) => const Datenschutz()),
                       ),
                     ),
                     _buildGameButton(

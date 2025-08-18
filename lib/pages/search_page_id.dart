@@ -1,4 +1,4 @@
-// lib/pages/search_page_id.dart
+// lib/pages/search_page.dart
 
 import 'package:flutter/material.dart';
 import 'id_result_page.dart';

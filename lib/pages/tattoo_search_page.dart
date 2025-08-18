@@ -1,35 +1,41 @@
 // lib/pages/tattoo_search_page.dart
 
 import 'package:flutter/material.dart';
-import 'tattoo_result_page.dart';
+import 'tattoo_result_page.dart';  // <-- Import der Result-Page
 
 class TattooSearchPage extends StatefulWidget {
-  const TattooSearchPage({Key? key}) : super(key: key);
-
   @override
   _TattooSearchPageState createState() => _TattooSearchPageState();
 }
 
 class _TattooSearchPageState extends State<TattooSearchPage> {
-  final _ctrl = TextEditingController();
-  String? _err;
+  final TextEditingController _tattooController = TextEditingController();
+  String? _error;
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _tattooController.dispose();
     super.dispose();
   }
 
-  void _onSearch() {
-    final code = _ctrl.text.trim();
+  void _searchTattoo() {
+    FocusScope.of(context).unfocus();
+    final code = _tattooController.text.trim();
+
     if (code.isEmpty) {
-      setState(() => _err = 'Bitte Tattoo-Code eingeben');
+      setState(() {
+        _error = 'Bitte einen Tattoo-Code eingeben';
+      });
       return;
     }
-    setState(() => _err = null);
+
+    // Navigation zur Result-Page – links befüllt, rechts leer
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => TattooResultPage(tattoo: code),
+        builder: (_) => TattooResultPage(
+          leftTattoo: code,
+          rightTattoo: '',
+        ),
       ),
     );
   }
@@ -37,26 +43,29 @@ class _TattooSearchPageState extends State<TattooSearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tattoo-Suche')),
+      appBar: AppBar(title: Text('Tattoo-Suche')),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          TextField(
-            controller: _ctrl,
-            decoration: InputDecoration(
-              labelText: 'Tattoo-Code',
-              errorText: _err,
-              border: const OutlineInputBorder(),
+        child: Column(
+          children: [
+            TextField(
+              controller: _tattooController,
+              decoration: InputDecoration(
+                labelText: 'Tattoo-Code',
+                errorText: _error,
+              ),
+              textInputAction: TextInputAction.search,
+              onSubmitted: (_) => _searchTattoo(),
             ),
-            onSubmitted: (_) => _onSearch(),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton.icon(
-            onPressed: _onSearch,
-            icon: const Icon(Icons.search),
-            label: const Text('Suchen'),
-          ),
-        ]),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _searchTattoo,
+              child: Text('Suche starten'),
+            ),
+            // optional: hier könnten weiterhin lokale Ergebnisse stehen,
+            // wir lassen sie aber weg, da die Result-Page alles übernimmt.
+          ],
+        ),
       ),
     );
   }

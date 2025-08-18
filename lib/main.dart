@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.green,
         fontFamily: 'VarelaRound',
       ),
-      home: const LoginPage(),
+      home: const FirstPage(),
       routes: {
         '/ueber':    (_) => const UeberPage(),
         '/history': (_) => const FirstPage(),
