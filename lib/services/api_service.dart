@@ -184,8 +184,3 @@ class ApiService {
         .toList();
   }
 }
-
-
-
-
-

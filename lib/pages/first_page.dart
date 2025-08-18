@@ -6,10 +6,10 @@ import 'package:id_search/pages/search_page_id.dart';
 import 'package:id_search/pages/search_page_transponder.dart';
 import 'datenschutz_page.dart';
 // import 'package:ifta_mobile/LoginPage.dart';
- import 'package:url_launcher/url_launcher.dart';
- import 'ueber_page.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'ueber_page.dart';
 // import 'ChipSuche.dart';
- import 'dart:math' as math;
+import 'dart:math' as math;
 import 'tattoo_search_page.dart';
 // import 'IdSuche.dart';
 import 'registrierung_page.dart';
@@ -82,10 +82,10 @@ class _FirstPageState extends State<FirstPage> {
               height: 37,
               child: Icon(Icons.login),
             ),
-             onPressed: () => Navigator.push(
-               context,
-               MaterialPageRoute(builder: (context) => const LoginPage()),
-             ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LoginPage()),
+            ),
           ),
           IconButton(
             icon: SizedBox(
@@ -213,64 +213,64 @@ class _FirstPageState extends State<FirstPage> {
                     children: [
                       // your buttons
 
-                    _buildGameButton(
-                      imagePath: 'assets/images/Button1_200x200px.png',
-                      label: 'Chip Suche',
-                      imageSize: imageSize,
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const TransponderSearchPage()),
-                      ),
-                    ),
-                    _buildGameButton(
-                      imagePath: 'assets/images/Button2_200x200px.png',
-                      label: 'Tattoo Suche',
-                      imageSize: imageSize,
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) =>  TattooSearchPage()),
-                      ),
-                    ),
-                    _buildGameButton(
-                      imagePath: 'assets/images/Button3_200x200px.png',
-                      label: 'ID Suche',
-                      imageSize: imageSize,
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SearchPageId()),
-                      ),
-                    ),
-                    _buildGameButton(
-                      imagePath: 'assets/images/Button4_200x200px.png',
-                      label: 'Kunden Daten',
-                      imageSize: imageSize,
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const Datenschutz()),
-                      ),
-                    ),
-                    _buildGameButton(
-                      imagePath: 'assets/images/Button5_200x200px.png',
-                      label: 'Über Ifta',
-                      imageSize: imageSize,
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const UeberPage()),
-                      ),
-                    ),
-                    _buildGameButton(
-                      imagePath: 'assets/images/Button5_200x200px.png',
-                      label: 'Registrieren',
-                      imageSize: imageSize,
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TierRegistrierungPage(sesid: sesid)),
+                      _buildGameButton(
+                        imagePath: 'assets/images/Button1_200x200px.png',
+                        label: 'Chip Suche',
+                        imageSize: imageSize,
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const TransponderSearchPage()),
                         ),
                       ),
-                  ],
+                      _buildGameButton(
+                        imagePath: 'assets/images/Button2_200x200px.png',
+                        label: 'Tattoo Suche',
+                        imageSize: imageSize,
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) =>  TattooSearchPage()),
+                        ),
+                      ),
+                      _buildGameButton(
+                        imagePath: 'assets/images/Button3_200x200px.png',
+                        label: 'ID Suche',
+                        imageSize: imageSize,
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const SearchPageId()),
+                        ),
+                      ),
+                      _buildGameButton(
+                        imagePath: 'assets/images/Button4_200x200px.png',
+                        label: 'Kunden Daten',
+                        imageSize: imageSize,
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const Datenschutz()),
+                        ),
+                      ),
+                      _buildGameButton(
+                        imagePath: 'assets/images/Button5_200x200px.png',
+                        label: 'Über Ifta',
+                        imageSize: imageSize,
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const UeberPage()),
+                        ),
+                      ),
+                      _buildGameButton(
+                        imagePath: 'assets/images/Button5_200x200px.png',
+                        label: 'Registrieren',
+                        imageSize: imageSize,
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => TierRegistrierungPage(sesid: sesid)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
               ),
               const Spacer(flex: 3), // 🧭 Platz unten
             ],
