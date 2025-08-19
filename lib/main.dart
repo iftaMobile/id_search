@@ -56,7 +56,7 @@ class MyApp extends StatelessWidget {
             '/ueber':    (_) => const UeberPage(),
             '/first': (_) => const FirstPage(),
             '/login':   (_) => const LoginPage(),
-            '/profile': (_) =>  ProfilePage(),
+
 
 
           },

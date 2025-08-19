@@ -8,7 +8,9 @@ import 'package:id_search/models/UserData.dart';  // assumes User.fromMatchJson 
 
 class ProfilePage extends StatefulWidget {
   static const routeName = '/profile';
-  const ProfilePage({super.key});
+  final Animal animal;
+
+  const ProfilePage({Key? key, required this.animal}) : super(key: key);
 
   @override
   _ProfilePageState createState() => _ProfilePageState();
@@ -16,6 +18,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late Future<User> _futureUser;
+
 
   @override
   void initState() {
@@ -40,6 +43,33 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
     );
   }
+
+
+  Widget _buildAnimalCard() {
+    final a = widget.animal; // hier holst du dir das gewählte Tier
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Tierdaten', style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 12),
+            _buildRow('Tiername',        a.name),
+            _buildRow('Chip-Nr.',        a.transponder),
+            _buildRow('Tierart',         a.species),
+            _buildRow('Rasse',           a.breed),
+            _buildRow('Geschlecht',      a.gender),
+            _buildRow('Farbe',           a.color),
+            _buildRow('Letzte Änderung', a.lastChanged),
+          ],
+        ),
+      ),
+    );
+  }
+
+
 
   Future<User> _loadUserData() async {
     final sesid = await SessionManager.instance.storedSesId;
@@ -195,27 +225,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
 
                 // Animal Data Card
-                Card(
-                  margin: const EdgeInsets.symmetric(vertical: 16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Tierdaten',
-                            style: Theme.of(context).textTheme.bodySmall),
-                        const SizedBox(height: 12),
-                        _buildRow('Tiername', user.animal.name),
-                        _buildRow('Chip-Nr.', user.animal.transponder),
-                        _buildRow('Tierart', user.animal.species),
-                        _buildRow('Rasse', user.animal.breed),
-                        _buildRow('Geschlecht', user.animal.gender),
-                        _buildRow('Farbe', user.animal.color),
-                        _buildRow('Letzte Änderung', user.animal.lastChanged),
-                      ],
-                    ),
-                  ),
-                ),
+                _buildAnimalCard(),
 
                 // Signature & Footer
                 Padding(

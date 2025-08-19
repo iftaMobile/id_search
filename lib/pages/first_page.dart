@@ -6,6 +6,9 @@ import 'package:id_search/pages/profile_page.dart';
 import 'package:id_search/pages/search_page_id.dart';
 import 'package:id_search/pages/search_page_transponder.dart';
 import 'datenschutz_page.dart';
+import 'package:id_search/services/api_service.dart';
+import 'package:id_search/services/session_manager.dart';
+import 'package:id_search/models/UserData.dart';
 // import 'package:ifta_mobile/LoginPage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'ueber_page.dart';
@@ -15,7 +18,7 @@ import 'tattoo_search_page.dart';
 // import 'IdSuche.dart';
 import 'registrierung_page.dart';
 // import 'Kundendaten.dart';
-//
+import 'animal_selection_page.dart';
 // import 'storageHelper.dart';
 
 enum SampleItem { itemOne, itemTwo, itemThree }
@@ -34,6 +37,16 @@ class _FirstPageState extends State<FirstPage> {
   void initState() {
     super.initState();
   }
+
+  Future<List<Animal>> _loadAnimals() async {
+    final raw = await ApiService.fetchCustomerData(
+      sesid: (await SessionManager.instance.storedSesId)!,
+      adrId: (await SessionManager.instance.storedAdrId)!,
+    );
+    final matches = (raw['IFTA_MATCH'] as List).cast<Map<String, dynamic>>();
+    return matches.map(Animal.fromJson).toList();
+  }
+
 
 
 
@@ -245,10 +258,18 @@ class _FirstPageState extends State<FirstPage> {
                         imagePath: 'assets/images/Button4_200x200px.png',
                         label: 'Kunden Daten',
                         imageSize: imageSize,
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) =>  ProfilePage()),
-                        ),
+                        onPressed: () async {
+                          final animals = await _loadAnimals();
+
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AnimalSelectionScreen(animals: animals),
+                              ),
+                            );
+
+                        },
+
                       ),
                       _buildGameButton(
                         imagePath: 'assets/images/Button5_200x200px.png',
