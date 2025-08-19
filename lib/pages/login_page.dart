@@ -1,11 +1,7 @@
-
 // lib/pages/login_page.dart
 
 import 'package:flutter/material.dart';
-import 'package:id_search/pages/first_page.dart';
-import 'package:id_search/pages/search_page_id.dart';
 import 'package:id_search/services/session_manager.dart';
-import 'id_result_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -41,37 +37,37 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final sesid = await SessionManager.instance.getSesId(
+      // Benutzer-Login und SesID speichern
+      await SessionManager.instance.getSesId(
         username: user,
         password: pass,
       );
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const FirstPage()),
-      );
-
+      // Auf Profil-Seite weiterleiten
+      Navigator.pushReplacementNamed(context, '/first');
     } catch (e) {
       setState(() {
-        _error = e.toString();
+        _error = 'Login fehlgeschlagen: ${e.toString()}';
         _isLoading = false;
       });
     }
   }
 
   Future<void> _onLoginAnon() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
     try {
-      final sesid = await SessionManager.instance.getAnonymousSesId();
-      // now sesid is stored and you can navigate on exactly the same path
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const FirstPage()),
-      );
+      // Anonymen Login (Geräte-ID als SesID) durchführen
+      await SessionManager.instance.getAnonymousSesId();
+
+      // Auf Profil-Seite weiterleiten
+      Navigator.pushReplacementNamed(context, '/profile');
     } catch (e) {
       setState(() {
-        _error = 'Fehler beim anonymen Login: $e';
+        _error = 'Fehler beim anonymen Login: ${e.toString()}';
         _isLoading = false;
       });
     }
@@ -86,22 +82,43 @@ class _LoginPageState extends State<LoginPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // … your existing Username/Password fields …
+            TextField(
+              controller: _userCtrl,
+              decoration: const InputDecoration(labelText: 'Benutzername'),
+            ),
+
+            const SizedBox(height: 12),
+
+            TextField(
+              controller: _passCtrl,
+              decoration: const InputDecoration(labelText: 'Passwort'),
+              obscureText: true,
+            ),
+
             const SizedBox(height: 24),
 
-            // regular login button
             ElevatedButton(
               onPressed: _isLoading ? null : _onLogin,
               child: _isLoading
-                  ? const CircularProgressIndicator(strokeWidth: 2)
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
                   : const Text('Login'),
             ),
 
-            // new: anon button
             const SizedBox(height: 12),
+
             OutlinedButton(
               onPressed: _isLoading ? null : _onLoginAnon,
-              child: const Text('Anonym fortfahren'),
+              child: _isLoading
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+                  : const Text('Anonym fortfahren'),
             ),
 
             if (_error != null) ...[

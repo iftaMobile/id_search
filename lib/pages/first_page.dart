@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:id_search/pages/login_page.dart';
+import 'package:id_search/pages/profile_page.dart';
 import 'package:id_search/pages/search_page_id.dart';
 import 'package:id_search/pages/search_page_transponder.dart';
 import 'datenschutz_page.dart';
@@ -246,7 +247,7 @@ class _FirstPageState extends State<FirstPage> {
                         imageSize: imageSize,
                         onPressed: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const Datenschutz()),
+                          MaterialPageRoute(builder: (context) =>  ProfilePage()),
                         ),
                       ),
                       _buildGameButton(
