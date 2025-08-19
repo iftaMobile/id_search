@@ -1,10 +1,10 @@
 // lib/pages/profile_page.dart
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:id_search/models/UserData.dart';
 import 'package:id_search/services/api_service.dart';
 import 'package:id_search/services/session_manager.dart';
-import 'package:id_search/models/UserData.dart';  // assumes User.fromMatchJson is defined here
 
 class ProfilePage extends StatefulWidget {
   static const routeName = '/profile';
@@ -26,80 +26,209 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<User> _loadUserData() async {
     final sesid = await SessionManager.instance.storedSesId;
     final adrId = await SessionManager.instance.storedAdrId;
-
-    debugPrint('🛠️ Loading profile with sesid=$sesid   adrId=$adrId');
-
     if (sesid == null || adrId == null) {
-      // no session → force login
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacementNamed(context, '/login');
       });
-      return Future.error('No session');
+      return Future.error('No session or adrId');
     }
 
-    // fetch the raw JSON
     final raw = await ApiService.fetchCustomerData(
       sesid: sesid,
       adrId: adrId,
     );
-    debugPrint('🛠️ Raw profile JSON: $raw');
-
-    // pull out the IFTA_MATCH array
     final matches = raw['IFTA_MATCH'] as List<dynamic>? ?? [];
     if (matches.isEmpty) {
       throw Exception('Keine Profildaten gefunden für adrId $adrId');
     }
 
-    // map the first entry into your UserData model
-    final firstMatch = matches.first as Map<String, dynamic>;
-    return User.fromMatchJson(firstMatch);
+    return User.fromMatchJson(matches.first as Map<String, dynamic>);
+  }
+
+  Widget _buildRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          Expanded(flex: 5, child: Text(value)),
+        ],
+      ),
+    );
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext ctx) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mein Profil'),
+        title: const Text('Tierausweis'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await SessionManager.instance.clearSesId();
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushReplacementNamed(ctx, '/login');
             },
           )
         ],
       ),
       body: FutureBuilder<User>(
         future: _futureUser,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
+        builder: (c, snap) {
+          if (snap.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(child: Text('Fehler: ${snapshot.error}'));
+          if (snap.hasError) {
+            return Center(child: Text('Fehler: ${snap.error}'));
           }
+          final user = snap.data!;
 
-          final user = snapshot.data!;
-          return Padding(
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: ListView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ListTile(
-                  title: const Text('Name'),
-                  subtitle: Text(user.name),
+                // Header Card
+                Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Text('ifta Mobile',
+                            style: Theme.of(context).textTheme.headlineSmall),
+                        const Text('netzland'),
+                        const Divider(height: 24),
+                        const Text(
+                            'Nördliche Ringstrasse 10, 91126 Schwabach, Deutschland'),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Text('T: 09122 88 519 88'),
+                            SizedBox(width: 24),
+                            Text('F: 09122 88 519 89'),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text('info@tierregistrierung.de'),
+                        const SizedBox(height: 12),
+                        const Text(
+                          ' World wide free emergency number: \n 00800 4382 0000',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                ListTile(
-                  title: const Text('Straße'),
-                  subtitle: Text(user.street),
+
+          Card(
+          child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [// Title & Description
+                Text(
+                  'Tierausweis und Registerbestätigung',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
                 ),
-                ListTile(
-                  title: const Text('PLZ / Ort'),
-                  subtitle: Text('${user.zip} ${user.city}'),
+                const SizedBox(height: 8),
+                const Text(
+                  'Die IFTA-Tierregistrierung bestätigt dem unten aufgeführten '
+                      'Tierbesitzer die Registrierung seines Tieres in unserer Datenbank '
+                      'zur Identifikation und Rückvermittlung.',
+                  textAlign: TextAlign.center,
                 ),
-                ListTile(
-                  title: const Text('E-Mail'),
-                  subtitle: Text(user.email),
+                const SizedBox(height: 16),
+          ],
+          ),
+          ),
+          ),
+            const SizedBox(height: 13),
+                // Owner Data Card
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Tierhalter ID: ${user.adrId}',
+                            style: const TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        _buildRow('Name, Vorname', user.name),
+                        _buildRow('Straße', user.street),
+                        _buildRow('PLZ / Ort', '${user.zip} ${user.city}'),
+                        _buildRow('Land', user.country),
+                        _buildRow('E-Mail', user.email),
+                        _buildRow('Telefon Festnetz', user.telefonPriv),
+                        _buildRow('Telefon Geschäftlich', user.telefonGes),
+                        _buildRow('Telefon Mobil', user.telefonMobil),
+                        _buildRow('Fax', user.fax),
+                        _buildRow('Letzte Änderung', user.lastChanged),
+                        _buildRow('Registrierungs-Kennung (ICN)', user.icn),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Animal Data Card
+                Card(
+                  margin: const EdgeInsets.symmetric(vertical: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Tierdaten',
+                            style: Theme.of(context).textTheme.bodySmall),
+                        const SizedBox(height: 12),
+                        _buildRow('Tiername', user.animal.name),
+                        _buildRow('Chip-Nr.', user.animal.transponder),
+                        _buildRow('Tierart', user.animal.species),
+                        _buildRow('Rasse', user.animal.breed),
+                        _buildRow('Geschlecht', user.animal.gender),
+                        _buildRow('Farbe', user.animal.color),
+                        _buildRow('Letzte Änderung', user.animal.lastChanged),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Signature & Footer
+                Padding(
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'Mit freundlichen Grüßen\nIhre Ifta Internationale Zentrale für die Tierregistrierung',
+                        style: TextStyle(fontStyle: FontStyle.normal),
+                      ),
+                      SizedBox(height: 24),
+                      Divider(),
+                      SizedBox(height: 8),
+                      Text('Geschäftsführung: Frau Christine Beck'),
+                      Text('HRB.: 25231   •   USt-IdNr.: DE261084534'),
+                      SizedBox(height: 12),
+                      Text('Bank Deutschland: Postbank'),
+                      Text(
+                          'IBAN: DE22 7601 0085 0900 0338 55   •   BIC: PBNKDEFF760'),
+                      SizedBox(height: 6),
+                      Text('Bank Österreich: Hypo Vorarlberg'),
+                      Text('IBAN: AT88 5800 0104 6643 3018   •   BIC: HYPVAT2B'),
+                    ],
+                  ),
                 ),
               ],
             ),
