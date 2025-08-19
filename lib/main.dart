@@ -5,7 +5,10 @@ import 'package:id_search/pages/first_page.dart';
 import 'package:id_search/pages/login_page.dart';
 import 'package:id_search/pages/ueber_page.dart';
 import 'package:id_search/pages/profile_page.dart';           // ← your ProfilePage
-import 'package:id_search/services/session_manager.dart';     // ← our session helper
+import 'package:id_search/services/session_manager.dart';
+import 'pages/animal_selection_page.dart';
+import 'pages/animal_selection_page.dart';
+// ← our session helper
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,15 +49,16 @@ class MyApp extends StatelessWidget {
           ),
 
           // decide the initial screen based on session
-          home: hasSession
-              ?  ProfilePage()    // ← user is “logged in” → show profile
-              : const FirstPage(),     // ← no session → your existing entry page
+          home:   // ← user is “logged in” → show profile
+              const FirstPage(),     // ← no session → your existing entry page
 
           routes: {
             '/ueber':    (_) => const UeberPage(),
             '/first': (_) => const FirstPage(),
             '/login':   (_) => const LoginPage(),
             '/profile': (_) =>  ProfilePage(),
+
+
           },
         );
       },
