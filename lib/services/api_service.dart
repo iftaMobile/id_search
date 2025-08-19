@@ -63,16 +63,31 @@ class ApiService {
 
   /// 1b) If login doesn’t return adr_id, call this after you have a valid sesid
   static Future<String> fetchAdrId({ required String sesid }) async {
-    // We pass a dummy adr_id because the server needs the param—
-    // it will ignore it and return your full ADRESSE_INFO block instead.
     final raw = await fetchCustomerData(sesid: sesid, adrId: '0');
-    final info = (raw['ADRESSE_INFO'] ?? {}) as Map<String, dynamic>;
-    final adrId = info['adr_id']?.toString();
-    if (adrId == null || adrId.isEmpty) {
-      throw Exception('Could not fetch adr_id from profile data');
+
+    // Roh-Antwort prüfen
+    debugPrint('🔍 [fetchAdrId] raw JSON: ${jsonEncode(raw)}');
+
+    final matches = (raw['IFTA_MATCH'] as List<dynamic>?) ?? [];
+    debugPrint('🔢 [fetchAdrId] IFTA_MATCH count: ${matches.length}');
+    if (matches.isEmpty) {
+      throw Exception('Keine Einträge in IFTA_MATCH, adrId unbekannt');
     }
+
+    final firstMatch = (matches.first as Map<dynamic, dynamic>)
+        .cast<String, dynamic>();
+    debugPrint('🗂️ [fetchAdrId] firstMatch keys: ${firstMatch.keys}');
+    final adrId = firstMatch['adr_id']?.toString();
+    debugPrint('🏷️ [fetchAdrId] extrahiertes adr_id: $adrId');
+
+    if (adrId == null || adrId.isEmpty) {
+      throw Exception('adr_id nicht gefunden in IFTA_MATCH[0]');
+    }
+
     return adrId;
   }
+
+
 
   /// 2) IFTA-Coin-Daten (Info + Trefferliste)
   static Future<Map<String, dynamic>> fetchIftaData({

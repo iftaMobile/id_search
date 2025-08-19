@@ -1,11 +1,10 @@
 // lib/pages/profile_page.dart
 
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:id_search/models/UserData.dart';
+import 'package:flutter/material.dart';
 import 'package:id_search/services/api_service.dart';
 import 'package:id_search/services/session_manager.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:id_search/models/UserData.dart';  // assumes User.fromMatchJson is defined here
 
 class ProfilePage extends StatefulWidget {
   static const routeName = '/profile';
@@ -26,254 +25,85 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<User> _loadUserData() async {
     final sesid = await SessionManager.instance.storedSesId;
-    final adrId = await SessionManager.instance.storedAdrId;
-    if (sesid == null || adrId == null) {
+    if (sesid == null) {
+      // kein sesId → Login erzwingen
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacementNamed(context, '/login');
       });
-      return Future.error('No session or adrId');
+      return Future.error('Keine Session gefunden');
     }
 
+    // adrId aus Prefs oder aus API nachladen
+    var adrId = await SessionManager.instance.storedAdrId;
+    if (adrId == null) {
+      adrId = await ApiService.fetchAdrId(sesid: sesid);
+      await SessionManager.instance.saveAdrId(adrId);
+    }
+
+    debugPrint('🛠️ Loading profile with sesid=$sesid   adrId=$adrId');
+
+    // Profil‐Daten einholen
     final raw = await ApiService.fetchCustomerData(
       sesid: sesid,
       adrId: adrId,
     );
+    debugPrint('🛠️ Raw profile JSON: $raw');
+
     final matches = raw['IFTA_MATCH'] as List<dynamic>? ?? [];
     if (matches.isEmpty) {
       throw Exception('Keine Profildaten gefunden für adrId $adrId');
     }
 
-    return User.fromMatchJson(matches.first as Map<String, dynamic>);
+    final firstMatch = matches.first as Map<String, dynamic>;
+    return User.fromMatchJson(firstMatch);
   }
 
-  Widget _buildRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-          ),
-          Expanded(flex: 5, child: Text(value)),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _shareData(User user) async {
-    final text = <String>[
-      'Tierhalter ID: ${user.adrId}',
-      'Name: ${user.name}',
-      'Straße: ${user.street}',
-      'PLZ / Ort: ${user.zip} ${user.city}',
-      'Land: ${user.country}',
-      'E-Mail: ${user.email}',
-      'Festnetz: ${user.telefonPriv}',
-      'Geschäftlich: ${user.telefonGes}',
-      'Mobil: ${user.telefonMobil}',
-      'Fax: ${user.fax}',
-      'Letzte Änderung (Halter): ${user.lastChanged}',
-      'ICN: ${user.icn}',
-      '',
-      '— Tierdaten —',
-      'Tiername: ${user.animal.name}',
-      'Transponder: ${user.animal.transponder}',
-      'Tierart: ${user.animal.species}',
-      'Rasse: ${user.animal.breed}',
-      'Geschlecht: ${user.animal.gender}',
-      'Farbe: ${user.animal.color}',
-      'Letzte Änderung (Tier): ${user.animal.lastChanged}',
-    ].join('\n');
-
-    await Share.share(
-      text,
-      subject: 'Send User Data',         // ← this becomes the chooser title
-      sharePositionOrigin:
-      Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, 0),
-    );
-  }
 
   @override
-  Widget build(BuildContext ctx) {
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tierausweis'),
+        title: const Text('Mein Profil'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await SessionManager.instance.clearSesId();
-              Navigator.pushReplacementNamed(ctx, '/login');
+              await SessionManager.instance.clearSession();
+              Navigator.pushReplacementNamed(context, '/login');
             },
           )
         ],
       ),
       body: FutureBuilder<User>(
         future: _futureUser,
-        builder: (c, snap) {
-          if (snap.connectionState != ConnectionState.done) {
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snap.hasError) {
-            return Center(child: Text('Fehler: ${snap.error}'));
+          if (snapshot.hasError) {
+            return Center(child: Text('Fehler: ${snapshot.error}'));
           }
-          final user = snap.data!;
 
-          return SingleChildScrollView(
+          final user = snapshot.data!;
+          return Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: ListView(
               children: [
-                Card(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Text('ifta Mobile',
-                            style: Theme.of(context).textTheme.headlineSmall),
-                        const Text('netzland'),
-                        const Divider(height: 24),
-                        const Text(
-                            'Nördliche Ringstrasse 10, 91126 Schwabach, Deutschland'),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Text('T: 09122 88 519 88'),
-                            SizedBox(width: 24),
-                            Text('F: 09122 88 519 89'),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        const Text('info@tierregistrierung.de'),
-                        const SizedBox(height: 12),
-                        const Text(
-                          ' World wide free emergency number: \n 00800 4382 0000',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
+                ListTile(
+                  title: const Text('Name'),
+                  subtitle: Text(user.name),
                 ),
-
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [// Title & Description
-                        Text(
-                          'Tierausweis und Registerbestätigung',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Die IFTA-Tierregistrierung bestätigt dem unten aufgeführten '
-                              'Tierbesitzer die Registrierung seines Tieres in unserer Datenbank '
-                              'zur Identifikation und Rückvermittlung.',
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                    ),
-                  ),
+                ListTile(
+                  title: const Text('Straße'),
+                  subtitle: Text(user.street),
                 ),
-                const SizedBox(height: 13),
-                // Owner Data Card
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Tierhalter ID: ${user.adrId}',
-                            style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        _buildRow('Name, Vorname', user.name),
-                        _buildRow('Straße', user.street),
-                        _buildRow('PLZ / Ort', '${user.zip} ${user.city}'),
-                        _buildRow('Land', user.country),
-                        _buildRow('E-Mail', user.email),
-                        _buildRow('Telefon Festnetz', user.telefonPriv),
-                        _buildRow('Telefon Geschäftlich', user.telefonGes),
-                        _buildRow('Telefon Mobil', user.telefonMobil),
-                        _buildRow('Fax', user.fax),
-                        _buildRow('Letzte Änderung', user.lastChanged),
-                        _buildRow('Registrierungs-Kennung (ICN)', user.icn),
-                      ],
-                    ),
-                  ),
+                ListTile(
+                  title: const Text('PLZ / Ort'),
+                  subtitle: Text('${user.zip} ${user.city}'),
                 ),
-
-                // Animal Data Card
-                Card(
-                  margin: const EdgeInsets.symmetric(vertical: 16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Tierdaten',
-                            style: Theme.of(context).textTheme.bodySmall),
-                        const SizedBox(height: 12),
-                        _buildRow('Tiername', user.animal.name),
-                        _buildRow('Chip-Nr.', user.animal.transponder),
-                        _buildRow('Tierart', user.animal.species),
-                        _buildRow('Rasse', user.animal.breed),
-                        _buildRow('Geschlecht', user.animal.gender),
-                        _buildRow('Farbe', user.animal.color),
-                        _buildRow('Letzte Änderung', user.animal.lastChanged),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Signature & Footer
-                Padding(
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Mit freundlichen Grüßen\nIhre Ifta Internationale Zentrale für die Tierregistrierung',
-                        style: TextStyle(fontStyle: FontStyle.normal),
-                      ),
-                      SizedBox(height: 24),
-                      Divider(),
-                      SizedBox(height: 8),
-                      Text('Geschäftsführung: Frau Christine Beck'),
-                      Text('HRB.: 25231   •   USt-IdNr.: DE261084534'),
-                      SizedBox(height: 12),
-                      Text('Bank Deutschland: Postbank'),
-                      Text(
-                          'IBAN: DE22 7601 0085 0900 0338 55   •   BIC: PBNKDEFF760'),
-                      SizedBox(height: 6),
-                      Text('Bank Österreich: Hypo Vorarlberg'),
-                      Text('IBAN: AT88 5800 0104 6643 3018   •   BIC: HYPVAT2B'),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // SHARE BUTTON
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.share),
-                  label: const Text('Daten teilen'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  onPressed: () => _shareData(user),
+                ListTile(
+                  title: const Text('E-Mail'),
+                  subtitle: Text(user.email),
                 ),
               ],
             ),

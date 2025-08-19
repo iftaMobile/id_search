@@ -20,24 +20,6 @@ class SessionManager {
     await prefs.setString(_keyAdrId, adrId);
   }
 
-  /// Returns stored sesid or null
-  Future<String?> get storedSesId async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keySesId);
-  }
-
-  /// Returns stored adrId or null
-  Future<String?> get storedAdrId async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_keyAdrId);
-  }
-
-  /// Clears both sesid and adrId (logout)
-  Future<void> clearSesId() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keySesId);
-    await prefs.remove(_keyAdrId);
-  }
 
   ///  ——————————————————————————————
   /// Returns a valid sesid, logging in if needed.
@@ -45,37 +27,71 @@ class SessionManager {
     required String username,
     required String password,
   }) async {
-    // 1) if we already have one, return it
-    final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString(_keySesId);
-    if (stored != null && stored.isNotEmpty) {
-      return stored;
+    final session = await _readSession();
+    final storedSesId = session[_keySesId];
+    final storedAdrId = session[_keyAdrId];
+
+    // Wenn beides da ist, direkt zurückgeben
+    if (storedSesId != null && storedAdrId != null) {
+      return storedSesId;
     }
 
-    // 2) otherwise perform the login call
+    // Ansonsten Login und adrId-Fallback
     final loginResult = await ApiService.login(
       username: username,
       password: password,
     );
 
-    // 3) figure out the adrId
-    String adrId;
-    if (loginResult.adrId != null && loginResult.adrId!.isNotEmpty) {
-      adrId = loginResult.adrId!;
-    } else {
-      // fallback: call your profile endpoint to discover the adr_id
-      adrId = await ApiService.fetchAdrId(sesid: loginResult.sesid);
-    }
+    final sesid = loginResult.sesid;
+    final adrId = loginResult.adrId?.isNotEmpty == true
+        ? loginResult.adrId!
+        : await ApiService.fetchAdrId(sesid: sesid);
 
-    // 4) persist both
-    await saveSession(
-      sesid: loginResult.sesid,
-      adrId: adrId,
-    );
-
-    // 5) return the new sesid
-    return loginResult.sesid;
+    await _saveSession(sesid: sesid, adrId: adrId);
+    return sesid;
   }
+
+  Future<void> saveAdrId(String adrId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyAdrId, adrId);
+  }
+
+// gespeicherte adrId lesen
+  Future<String?> get storedAdrId async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyAdrId);
+  }
+
+// gespeicherte sesId lesen (bestehend)
+  Future<String?> get storedSesId async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keySesId);
+  }
+
+
+  Future<void> clearSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keySesId);
+    await prefs.remove(_keyAdrId);
+  }
+
+
+// Liest sesid und adrId gemeinsam aus
+  Future<Map<String, String?>> _readSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    return {
+      _keySesId: prefs.getString(_keySesId),
+      _keyAdrId: prefs.getString(_keyAdrId),
+    };
+  }
+
+// Speichert sesid und adrId
+  Future<void> _saveSession({ required String sesid, required String adrId }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keySesId, sesid);
+    await prefs.setString(_keyAdrId, adrId);
+  }
+
 
   /// ——————————————————————————————
   /// Anonymous “login” via device-ID
