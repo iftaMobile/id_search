@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:id_search/models/UserData.dart';
 import 'package:id_search/services/api_service.dart';
 import 'package:id_search/services/session_manager.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ProfilePage extends StatefulWidget {
   static const routeName = '/profile';
@@ -63,6 +64,39 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Future<void> _shareData(User user) async {
+    final text = <String>[
+      'Tierhalter ID: ${user.adrId}',
+      'Name: ${user.name}',
+      'Straße: ${user.street}',
+      'PLZ / Ort: ${user.zip} ${user.city}',
+      'Land: ${user.country}',
+      'E-Mail: ${user.email}',
+      'Festnetz: ${user.telefonPriv}',
+      'Geschäftlich: ${user.telefonGes}',
+      'Mobil: ${user.telefonMobil}',
+      'Fax: ${user.fax}',
+      'Letzte Änderung (Halter): ${user.lastChanged}',
+      'ICN: ${user.icn}',
+      '',
+      '— Tierdaten —',
+      'Tiername: ${user.animal.name}',
+      'Transponder: ${user.animal.transponder}',
+      'Tierart: ${user.animal.species}',
+      'Rasse: ${user.animal.breed}',
+      'Geschlecht: ${user.animal.gender}',
+      'Farbe: ${user.animal.color}',
+      'Letzte Änderung (Tier): ${user.animal.lastChanged}',
+    ].join('\n');
+
+    await Share.share(
+      text,
+      subject: 'Send User Data',         // ← this becomes the chooser title
+      sharePositionOrigin:
+      Rect.fromLTWH(0, 0, MediaQuery.of(context).size.width, 0),
+    );
+  }
+
   @override
   Widget build(BuildContext ctx) {
     return Scaffold(
@@ -94,7 +128,6 @@ class _ProfilePageState extends State<ProfilePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header Card
                 Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   child: Padding(
@@ -128,33 +161,33 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
 
-          Card(
-          child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [// Title & Description
-                Text(
-                  'Tierausweis und Registerbestätigung',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyLarge
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [// Title & Description
+                        Text(
+                          'Tierausweis und Registerbestätigung',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Die IFTA-Tierregistrierung bestätigt dem unten aufgeführten '
+                              'Tierbesitzer die Registrierung seines Tieres in unserer Datenbank '
+                              'zur Identifikation und Rückvermittlung.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Die IFTA-Tierregistrierung bestätigt dem unten aufgeführten '
-                      'Tierbesitzer die Registrierung seines Tieres in unserer Datenbank '
-                      'zur Identifikation und Rückvermittlung.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-          ],
-          ),
-          ),
-          ),
-            const SizedBox(height: 13),
+                const SizedBox(height: 13),
                 // Owner Data Card
                 Card(
                   child: Padding(
@@ -229,6 +262,18 @@ class _ProfilePageState extends State<ProfilePage> {
                       Text('IBAN: AT88 5800 0104 6643 3018   •   BIC: HYPVAT2B'),
                     ],
                   ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // SHARE BUTTON
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.share),
+                  label: const Text('Daten teilen'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: () => _shareData(user),
                 ),
               ],
             ),

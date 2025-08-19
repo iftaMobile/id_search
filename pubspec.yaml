@@ -33,8 +33,11 @@ dependencies:
 
   shared_preferences: ^2.0.15
 
-  device_info_plus: ^9.1.0
+
   http: ^0.13.0
+
+  device_info_plus: ^9.1.0
+  share_plus: ^11.1.0
 
 
   path: ^1.8.2
@@ -88,14 +91,14 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  fonts:
+  #fonts:
   #     - family: KirangHaerang
   #       fonts:
   #         - asset: fonts/KirangHaerang-Regular.ttf
   #
-      - family: VarelaRound
-        fonts:
-           - asset: fonts/VarelaRound-Regular.ttf
+  #   - family: VarelaRound
+  #      fonts:
+  #         - asset: fonts/VarelaRound-Regular.ttf
   #
   #     - family: Pacifico
   #       fonts:
