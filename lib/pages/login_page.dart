@@ -1,6 +1,7 @@
 // lib/pages/login_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:id_search/pages/first_page.dart';
 import 'package:id_search/services/session_manager.dart';
 
 class LoginPage extends StatefulWidget {
@@ -26,24 +27,44 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _onLogin() async {
     final user = _userCtrl.text.trim();
     final pass = _passCtrl.text.trim();
+
+    // 1) Sind wir schon eingeloggt? (Session-ID + Username prüfen)
+    final storedSesId  = await SessionManager.instance.storedSesId;
+    final storedUsernm = await SessionManager.instance.storedUsername;
+    if (storedSesId != null &&
+        storedSesId.isNotEmpty &&
+        storedUsernm != null &&
+        storedUsernm.isNotEmpty) {
+      Navigator.pushReplacementNamed(context, '/logout');
+      return;
+    }
+
+    // 2) Validierung
     if (user.isEmpty || pass.isEmpty) {
       setState(() => _error = 'Bitte Username und Passwort eingeben.');
       return;
     }
 
+    // 3) Ladezustand anzeigen
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      // Benutzer-Login und SesID speichern
-      await SessionManager.instance.getSesId(
+      // 4) Session-ID vom Server holen (oder aus Cache, falls vorhanden)
+      final String sesId = await SessionManager.instance.getSesId(
         username: user,
         password: pass,
       );
 
-      // Auf Profil-Seite weiterleiten
+      // 5) Session-ID UND Username in SharedPreferences speichern
+      await SessionManager.instance.setSession(
+        sesId: sesId,
+        username: user,
+      );
+
+      // 6) Weiterleiten zur ersten Seite
       Navigator.pushReplacementNamed(context, '/first');
     } catch (e) {
       setState(() {
@@ -111,7 +132,19 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(height: 12),
 
             OutlinedButton(
-              onPressed: _isLoading ? null : _onLoginAnon,
+              onPressed: _isLoading
+                  ? null
+                  : () async {
+                setState(() => _isLoading = true);
+
+                // Session löschen
+                await SessionManager.instance.clearSession();
+
+                // Erst dann zur FirstPage navigieren
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const FirstPage()),
+                );
+              },
               child: _isLoading
                   ? const SizedBox(
                 width: 20,

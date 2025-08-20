@@ -113,13 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         title: const Text('Mein Profil'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await SessionManager.instance.clearSession();
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          )
+
         ],
       ),
       body: FutureBuilder<User>(

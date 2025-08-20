@@ -1,5 +1,5 @@
 // Gebaut von Marc
-
+import 'login_required_page.dart';
 import 'package:flutter/material.dart';
 import 'package:id_search/pages/login_page.dart';
 import 'package:id_search/pages/profile_page.dart';
@@ -19,6 +19,7 @@ import 'tattoo_search_page.dart';
 import 'registrierung_page.dart';
 // import 'Kundendaten.dart';
 import 'animal_selection_page.dart';
+import 'logout_page.dart';
 // import 'storageHelper.dart';
 
 enum SampleItem { itemOne, itemTwo, itemThree }
@@ -90,18 +91,29 @@ class _FirstPageState extends State<FirstPage> {
       appBar: AppBar(
         title: const Text('IFTA Mobile', style: TextStyle(fontSize: 27, fontFamily: "VarelaRound")),
         toolbarHeight: 60,
-        actions: <Widget>[
-          IconButton(
-            icon: SizedBox(
-              height: 37,
-              child: Icon(Icons.login),
+          actions: [
+            FutureBuilder<String?>(
+              future: SessionManager.instance.storedSesId,
+              builder: (ctx, snapshot) {
+                final isLoggedIn = snapshot.data?.isNotEmpty == true;
+
+                return IconButton(
+                  icon: Icon(isLoggedIn ? Icons.logout : Icons.login),
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      isLoggedIn ? '/logout' : '/login',
+                    ).then((_) {
+                      // Nach Pop oder Replace: Widget neu aufbauen
+                      setState(() {});
+                    });
+                  },
+                );
+              },
             ),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginPage()),
-            ),
-          ),
-          IconButton(
+
+
+            IconButton(
             icon: SizedBox(
               height: 42,
               child: Icon(Icons.history),
@@ -109,7 +121,7 @@ class _FirstPageState extends State<FirstPage> {
             onPressed: () {},
           ),
           const SizedBox(width: 20),
-        ],
+      ],
       ),
       drawer: Builder(
         builder: (context) {
@@ -164,17 +176,30 @@ class _FirstPageState extends State<FirstPage> {
                     },
                   ),
 
-                  ListTile(
-                    leading: const Icon(Icons.login),
-                    title: const Text(
-                      'Login',
-                      style: TextStyle(fontFamily: 'VarelaRound'),
-                    ),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginPage()),
-                    ),
+                  FutureBuilder<String?>(
+                    future: SessionManager.instance.storedSesId,
+                    builder: (ctx, snap) {
+                      final isLoggedIn = snap.hasData && snap.data!.isNotEmpty;
+
+                      return ListTile(
+                        leading: Icon(isLoggedIn ? Icons.logout : Icons.login),
+                        title: Text(
+                          isLoggedIn ? 'Logout' : 'Login',
+                          style: const TextStyle(fontFamily: 'VarelaRound'),
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                              isLoggedIn ? const LogoutPage() : const LoginPage(),
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
+
 
                   ListTile(
                     leading: const Icon(Icons.info_outline),
@@ -259,18 +284,27 @@ class _FirstPageState extends State<FirstPage> {
                         label: 'Kunden Daten',
                         imageSize: imageSize,
                         onPressed: () async {
-                          final animals = await _loadAnimals();
+                          final sesid = await SessionManager.instance.storedSesId;
 
+                          if (sesid != null && sesid.isNotEmpty) {
+                            // eingeloggt → Tier-Auswahl öffnen
+                            final animals = await _loadAnimals();
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => AnimalSelectionScreen(animals: animals),
                               ),
                             );
-
+                          } else {
+                            // nicht eingeloggt → Hinweis-Seite
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LoginRequiredPage()),
+                            );
+                          }
                         },
-
                       ),
+
                       _buildGameButton(
                         imagePath: 'assets/images/Button5_200x200px.png',
                         label: 'Über Ifta',

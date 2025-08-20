@@ -100,6 +100,11 @@ class ApiService {
         'sesid': sesid,
       },
     );
+
+    // 2) Debug-Ausgabe der kompletten URL
+    debugPrint('ID Data Request URL → $uri');
+
+
     final resp = await http.get(uri);
     if (resp.statusCode != 200) {
       throw Exception('Server error: ${resp.statusCode}');
@@ -147,6 +152,10 @@ class ApiService {
         'sesid':       sesid,
       },
     );
+
+    // 2) Debug-Ausgabe der kompletten URL
+    debugPrint('Transponder Data Request URL → $uri');
+
     final resp = await http.get(uri);
     if (resp.statusCode != 200) {
       throw Exception('Transponder request failed: ${resp.statusCode}');
@@ -177,6 +186,10 @@ class ApiService {
         'sesid': sesid,
       },
     );
+
+    // 2) Debug-Ausgabe der kompletten URL
+    debugPrint('IFTA Data Request URL → $uri');
+
     final resp = await http.post(uri);
     if (resp.statusCode != 200) {
       throw Exception('Tattoo request failed: ${resp.statusCode}');

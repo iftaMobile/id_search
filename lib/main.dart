@@ -8,6 +8,7 @@ import 'package:id_search/pages/profile_page.dart';           // ← your Profil
 import 'package:id_search/services/session_manager.dart';
 import 'pages/animal_selection_page.dart';
 import 'pages/animal_selection_page.dart';
+import 'pages/logout_page.dart';
 // ← our session helper
 
 void main() {
@@ -50,12 +51,14 @@ class MyApp extends StatelessWidget {
 
           // decide the initial screen based on session
           home:   // ← user is “logged in” → show profile
-              const FirstPage(),     // ← no session → your existing entry page
+              const LoginPage(),     // ← no session → your existing entry page
 
           routes: {
             '/ueber':    (_) => const UeberPage(),
             '/first': (_) => const FirstPage(),
             '/login':   (_) => const LoginPage(),
+            '/logout': (_) => const LogoutPage(),
+
 
 
 

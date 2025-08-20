@@ -68,11 +68,18 @@ class SessionManager {
     return prefs.getString(_keySesId);
   }
 
+  Future<String?> get storedUsername async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('username');
+  }
+
+
 
   Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keySesId);
     await prefs.remove(_keyAdrId);
+    await prefs.remove('username');
   }
 
 
@@ -91,6 +98,18 @@ class SessionManager {
     await prefs.setString(_keySesId, sesid);
     await prefs.setString(_keyAdrId, adrId);
   }
+
+  Future<void> setSession({
+    required String sesId,
+    required String username,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs
+      ..setString('sesid', sesId)
+      ..setString('username', username);
+  }
+
+
 
 
   /// ——————————————————————————————

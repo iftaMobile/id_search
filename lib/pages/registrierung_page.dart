@@ -76,24 +76,7 @@ class _TierRegistrierungPageState extends State<TierRegistrierungPage> {
         ),
         title: const Text('Tierregistrieren', style: TextStyle(fontSize: 27)),
         actions: [
-          IconButton(
-            icon: SizedBox(
-              height: 37,
-              child: Icon(Icons.login),
-            ),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const FirstPage()),
-            ),
-          ),
-          IconButton(
-            icon: SizedBox(
-              height: 42,
-              child: Icon(Icons.history),
-            ),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 20),
+
         ],
       ),
       body: Stack(

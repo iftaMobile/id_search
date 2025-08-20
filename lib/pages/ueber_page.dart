@@ -71,22 +71,7 @@ class _UeberPageState extends State<UeberPage> {
             icon: const Icon(Icons.public),
             onPressed: _openHomepage,
           ),
-          IconButton(
-            tooltip: 'History',
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              // Navigiere zur History-Seite
-              Navigator.pushNamed(context, '/history');
-            },
-          ),
-          IconButton(
-            tooltip: 'Login',
-            icon: const Icon(Icons.login),
-            onPressed: () {
-              // Navigiere zur Login-Seite
-              Navigator.pushNamed(context, '/login');
-            },
-          ),
+
           SizedBox(width: 20,)
         ],
       ),
