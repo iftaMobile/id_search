@@ -4,7 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:id_search/services/api_service.dart';
 import 'package:id_search/services/session_manager.dart';
-import 'package:id_search/models/UserData.dart';  // assumes User.fromMatchJson is defined here
+import 'package:id_search/models/UserData.dart';
+import 'package:share_plus/share_plus.dart';// assumes User.fromMatchJson is defined here
 
 class ProfilePage extends StatefulWidget {
   static const routeName = '/profile';
@@ -105,6 +106,42 @@ class _ProfilePageState extends State<ProfilePage> {
     final firstMatch = matches.first as Map<String, dynamic>;
     return User.fromMatchJson(firstMatch);
   }
+
+  void _shareProfile(User user) {
+    final sb = StringBuffer()
+    // Header
+      ..writeln('IFTA – Profil & Tierdaten')
+      ..writeln('—————————————\n')
+
+    // Owner-Daten
+      ..writeln('Tierhalter ID       : ${user.adrId}')
+      ..writeln('Name, Vorname       : ${user.name}')
+      ..writeln('E-Mail              : ${user.email}')
+      ..writeln('Telefon Festnetz    : ${user.telefonPriv}')
+      ..writeln('Telefon Geschäftlich: ${user.telefonGes}')
+      ..writeln('Telefon Mobil       : ${user.telefonMobil}')
+      ..writeln('Fax                 : ${user.fax}')
+      //..writeln('Benutzername        : ${user.username}')
+      ..writeln('Straße              : ${user.street}')
+      ..writeln('PLZ / Ort           : ${user.zip} ${user.city}')
+      ..writeln('Land                : ${user.country}')
+
+    // Tierdaten
+      ..writeln('\nTierdaten:')
+      ..writeln('- Tiername        : ${widget.animal.name}')
+      ..writeln('- Chip-Nr.        : ${widget.animal.transponder}')
+      ..writeln('- Tierart         : ${widget.animal.species}')
+      ..writeln('- Rasse           : ${widget.animal.breed}')
+      ..writeln('- Farbe           : ${widget.animal.color}')
+      ..writeln('- Geschlecht      : ${widget.animal.gender}')
+      ..writeln('- Letzte Änderung : ${widget.animal.lastChanged}');
+
+    Share.share(
+      sb.toString().trim(),
+      subject: 'Mein IFTA-Profil & Tierdaten',
+    );
+  }
+
 
 
   @override
@@ -257,8 +294,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
-                  onPressed: (){},
+                  // ruft _shareProfile auf und übergibt den geladenen User
+                  onPressed: user != null
+                      ? () => _shareProfile(user)
+                      : null,
                 ),
+
               ],
             ),
           );

@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:id_search/pages/first_page.dart';
 import 'package:id_search/services/session_manager.dart';
+import 'package:id_search/services/session_sandbox.dart'; // ← neu
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -52,11 +53,14 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // 4) Session-ID vom Server holen (oder aus Cache, falls vorhanden)
+      // 4) Session-ID vom Server holen
       final String sesId = await SessionManager.instance.getSesId(
         username: user,
         password: pass,
       );
+
+      // **NEU**: Token in Secure Storage persistent ablegen
+      await SessionSandbox().saveSession(sesId);
 
       // 5) Session-ID UND Username in SharedPreferences speichern
       await SessionManager.instance.setSession(
@@ -64,35 +68,19 @@ class _LoginPageState extends State<LoginPage> {
         username: user,
       );
 
-      // 6) Weiterleiten zur ersten Seite
-      Navigator.pushReplacementNamed(context, '/first');
+      // 6) Weiterleiten zur ersten Seite (oder HomeScreen)
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const FirstPage()),
+      );
     } catch (e) {
       setState(() {
         _error = 'Login fehlgeschlagen: ${e.toString()}';
         _isLoading = false;
       });
     }
-  }
+  } // ← Hier war zuvor die schließende Klammer zu wenig
 
-  Future<void> _onLoginAnon() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      // Anonymen Login (Geräte-ID als SesID) durchführen
-      await SessionManager.instance.getAnonymousSesId();
-
-      // Auf Profil-Seite weiterleiten
-      Navigator.pushReplacementNamed(context, '/profile');
-    } catch (e) {
-      setState(() {
-        _error = 'Fehler beim anonymen Login: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

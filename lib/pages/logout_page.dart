@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:id_search/pages/first_page.dart';                // ← neu
 import 'package:id_search/services/session_manager.dart';
+import 'package:id_search/services/session_sandbox.dart';         // ← neu
 import 'login_page.dart';
 
 class LogoutPage extends StatefulWidget {
@@ -31,7 +33,6 @@ class _LogoutPageState extends State<LogoutPage> {
             }
 
             final user = snapshot.data;
-            // snapshot.data ist jetzt null oder empty → „nicht eingeloggt“
             if (user == null || user.isEmpty) {
               return const Text('Du bist nicht eingeloggt.');
             }
@@ -43,19 +44,20 @@ class _LogoutPageState extends State<LogoutPage> {
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () async {
+                    // 1) SharedPreferences/In-Memory löschen
                     await SessionManager.instance.clearSession();
-                    // Stack clearen → HomePage neu instanziieren
-                    Navigator.of(context).pushNamedAndRemoveUntil('/first', (r) => false);
+                    // 2) Secure Storage löschen
+                    await SessionSandbox().clearSession();
+                    // 3) Stack clearen und zurück zu FirstPage
+                    Navigator.of(context)
+                        .pushNamedAndRemoveUntil('/first', (r) => false);
                   },
                   child: const Text('Logout'),
                 ),
-
               ],
             );
-
           },
         ),
-
       ),
     );
   }
