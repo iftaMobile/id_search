@@ -63,7 +63,10 @@ class _TransponderSearchPageState extends State<TransponderSearchPage> {
     return phone;
   }
 
-
+  Future<String?> _loadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('username');
+  }
 
   // Ersetze deine bestehende _onSearch()-Methode in _TransponderSearchPageState komplett durch diesen Block:
 
@@ -77,46 +80,52 @@ class _TransponderSearchPageState extends State<TransponderSearchPage> {
 
     setState(() {
       _errorText = null;
-      _isLoading = true;  // Spinner anzeigen
+      _isLoading = true;
     });
 
     try {
-      // 1) Telefonnummer aus SharedPreferences holen
+      // 1) Telefonnummer holen
       final phone = await _loadPhoneNumber();
       if (phone == null || phone.isEmpty) {
         throw Exception('Keine Telefonnummer gespeichert');
       }
 
-      // 2) Finder-Log an jwwdblog.php senden
+      // 1a) Username holen & Fallback auf phone
+      final username = await _loadUsername();
+      final finderName = (username != null && username.isNotEmpty)
+          ? username
+          : phone;
+
+      debugPrint('🔍 Loaded username: $username');
+      debugPrint('🔍 Final finderName: $finderName');
+
+
+      // 2) Finder-Log senden (bleibt Telefonnummer)
       await _sendFinderNumber(phone);
 
-      // 3) Session-ID aus SharedPreferences holen
+      // 3) Session-ID holen
       final sessionId = await _loadSessionId();
       if (sessionId == null || sessionId.isEmpty) {
         throw Exception('Keine Session-ID gefunden');
       }
 
-      // 4) Kommentar-Text bauen
-      final commentText = 'Finder‐Nummer $phone hat Transponder $code gefunden';
-
-      // 5) Kommentar über den mobilen Endpoint abschicken
+      // 5) Kommentar senden – hier mit dem neuen finderName
       final result = await _postCommentMobile(
-        finderName: phone,
+        finderName: finderName,
         primaryNumber: phone,
         query: code,
-        commentText: commentText,
-        imei: 'BP22.250325.006',  // dieselbe IMEI wie bei der Transponder-Suche
+        commentText: '$finderName hat Transponder $code gefunden',  // <-- hier dein Username
+        imei: 'BP22.250325.006',
         sessionId: sessionId,
-        tag: 'addComment',        // falls serverseitig notwendig
+        tag: 'addComment',
       );
+
       debugPrint('📱 jgetcomments.php-Antwort: $result');
 
-      // 6) Erfolg im UI anzeigen
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Kommentar erfolgreich gepostet')),
       );
 
-      // 7) Zur Result-Page navigieren
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => TransponderResultPage(transponder: code),
@@ -128,47 +137,36 @@ class _TransponderSearchPageState extends State<TransponderSearchPage> {
         SnackBar(content: Text('Fehler: $e')),
       );
     } finally {
-      setState(() => _isLoading = false);  // Spinner ausblenden
+      setState(() => _isLoading = false);
     }
   }
 
 
   // Schritt A: Tier-Detail-Seite laden und authid extrahieren
+  // 1) Methode um den commentText ergänzen
   Future<String> _postCommentMobile({
     required String finderName,
     required String primaryNumber,
-    String? secondaryNumber,
     required String query,
-    required String commentText,
+    required String commentText,     // neu!
     required String imei,
     required String sessionId,
-    double latitude = 0,
-    double longitude = 0,
-    String email = 'null',
-    String? tag,            // optional
+    String? tag,
   }) async {
     final uri = Uri.parse('https://www.tierregistrierung.de/mob_app/jgetcomments.php');
 
-    // DEBUG: Body loggen
     final body = <String, String>{
       'name': finderName,
-      'various': commentText,
       'number': primaryNumber,
-      if (secondaryNumber != null) 'number2': secondaryNumber,
+      'various': commentText,        // <— hier der Kommentar
       'imei': imei,
-      'email': email,
-      'latitude': latitude.toString(),
-      'longitude': longitude.toString(),
-
-      // WICHTIG:
       'sesid': sessionId,
       if (tag != null) 'tag': tag,
-
-      // Transponder/IFTA/DB-ID
       if (query.length == 15) 'transponder': query
       else if (query.length == 8) 'iftaid': query
       else 'id': query,
     };
+
     debugPrint('🔍 POST jgetcomments.php → Body: $body');
 
     final resp = await _httpClient.post(
@@ -185,8 +183,6 @@ class _TransponderSearchPageState extends State<TransponderSearchPage> {
     }
     return resp.body;
   }
-
-
 
 
 
