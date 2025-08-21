@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import '../models/transponder_match.dart';
 import '../services/api_service.dart';
 import '../services/session_manager.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 
 class TransponderResultPage extends StatefulWidget {
   final String transponder;
@@ -22,6 +24,28 @@ class _TransponderResultPageState extends State<TransponderResultPage> {
   bool _isLoading = true;
   String? _error;
 
+  Future<bool> sendFinderNumber(String finderPhone) async {
+    // Basis-URL
+    const base = 'https://www.tierregistrierung.de/mob_app';
+    // Einfach nur tag=log und phone parameter
+    final uri = Uri.parse('$base/jwwdblog.php').replace(
+      queryParameters: {
+        'tag':   'log',
+        'phone': finderPhone.trim(),
+      },
+    );
+
+    // Debug: überprüfe im Log, wie die URL aussieht
+    debugPrint('🔐 sendFinderNumber → $uri');
+    final res = await http.get(uri);
+    debugPrint('🔐 Log-Response: ${res.statusCode}, Body: ${res.body}');
+    return res.statusCode == 200;
+
+    // Sende POST (Body bleibt leer, wie in deinem Java-Code)
+    final resp = await http.post(uri).timeout(const Duration(seconds: 10));
+    return resp.statusCode == 200;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +60,20 @@ class _TransponderResultPageState extends State<TransponderResultPage> {
       //   username: 'apiuser',
       //   password: 'geheimesPasswort',
       // );
+
+      debugPrint('🌐 Anfrage an Server:');
+      debugPrint('→ Transponder: ${widget.transponder.trim()}');
+      debugPrint('→ Session-ID: $sesid');
+      final prefs = await SharedPreferences.getInstance();
+      final finderPhone = prefs.getString('userPhone') ?? '';
+
+      // 2) Log-Request VOR der API-Abfrage
+      final ok = await sendFinderNumber(finderPhone);
+      if (!ok) {
+        debugPrint('❌ Log-Request fehlgeschlagen');
+        // hier entscheiden: abbrechen oder dennoch weitermachen?
+      }
+
 
       // 2) Hier das richtige Fetch: liefert List<TransponderMatch>
       final matches = await ApiService.fetchTransponderData(

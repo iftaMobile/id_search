@@ -3,6 +3,8 @@ import 'package:id_search/pages/first_page.dart';                // ← neu
 import 'package:id_search/services/session_manager.dart';
 import 'package:id_search/services/session_sandbox.dart';         // ← neu
 import 'login_page.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LogoutPage extends StatefulWidget {
   const LogoutPage({Key? key}) : super(key: key);
@@ -48,6 +50,10 @@ class _LogoutPageState extends State<LogoutPage> {
                     await SessionManager.instance.clearSession();
                     // 2) Secure Storage löschen
                     await SessionSandbox().clearSession();
+
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setBool('isVerified', false);
+
                     // 3) Stack clearen und zurück zu FirstPage
                     Navigator.of(context)
                         .pushNamedAndRemoveUntil('/first', (r) => false);

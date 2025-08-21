@@ -20,6 +20,9 @@ import 'registrierung_page.dart';
 // import 'Kundendaten.dart';
 import 'animal_selection_page.dart';
 import 'logout_page.dart';
+import 'identification_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'test_page.dart';
 // import 'storageHelper.dart';
 
 enum SampleItem { itemOne, itemTwo, itemThree }
@@ -47,6 +50,12 @@ class _FirstPageState extends State<FirstPage> {
     final matches = (raw['IFTA_MATCH'] as List).cast<Map<String, dynamic>>();
     return matches.map(Animal.fromJson).toList();
   }
+
+  Future<bool> _isVerified() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('isVerified') ?? false;
+  }
+
 
 
 
@@ -224,6 +233,28 @@ class _FirstPageState extends State<FirstPage> {
                       MaterialPageRoute(builder: (context) => const Datenschutz()),
                     ),
                   ),
+                  ListTile(
+                    leading: const Icon(Icons.perm_identity),
+                    title: const Text(
+                      'Identification',
+                      style: TextStyle(fontFamily: 'VarelaRound'),
+                    ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const IdentificationPage()),
+                    ),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.question_mark),
+                    title: const Text(
+                      'Test Page',
+                      style: TextStyle(fontFamily: 'VarelaRound'),
+                    ),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const TestPage()),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -256,28 +287,58 @@ class _FirstPageState extends State<FirstPage> {
                         imagePath: 'assets/images/Button1_200x200px.png',
                         label: 'Chip Suche',
                         imageSize: imageSize,
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const TransponderSearchPage()),
-                        ),
+                        onPressed: () async {
+
+                          final prefs = await SharedPreferences.getInstance();
+                          final verified = prefs.getBool('isVerified') ?? false;
+                          final phone = prefs.getString('userPhone') ?? 'Keine Nummer gespeichert';
+
+                          debugPrint('🔍 Chip Suche → isVerified = $verified');
+                          debugPrint('📞 Gespeicherte Telefonnummer: $phone');
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => verified
+                                  ? const TransponderSearchPage()
+                                  : const IdentificationPage(),
+                            ),
+                          );
+                        },
                       ),
+
                       _buildGameButton(
                         imagePath: 'assets/images/Button2_200x200px.png',
                         label: 'Tattoo Suche',
                         imageSize: imageSize,
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) =>  TattooSearchPage()),
-                        ),
+                        onPressed: () async {
+                          final verified = await _isVerified();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => verified
+                                  ? TattooSearchPage()
+                                  : const IdentificationPage(),
+                            ),
+                          );
+                        },
                       ),
+
                       _buildGameButton(
                         imagePath: 'assets/images/Button3_200x200px.png',
                         label: 'ID Suche',
                         imageSize: imageSize,
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const SearchPageId()),
-                        ),
+                        onPressed: () async {
+                          final verified = await _isVerified();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => verified
+                                  ? const SearchPageId()
+                                  : const IdentificationPage(),
+                            ),
+                          );
+                        },
                       ),
                       _buildGameButton(
                         imagePath: 'assets/images/Button4_200x200px.png',

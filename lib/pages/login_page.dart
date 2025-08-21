@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:id_search/pages/first_page.dart';
 import 'package:id_search/services/session_manager.dart';
 import 'package:id_search/services/session_sandbox.dart'; // ← neu
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -67,6 +68,9 @@ class _LoginPageState extends State<LoginPage> {
         sesId: sesId,
         username: user,
       );
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isVerified', true);
+
 
       // 6) Weiterleiten zur ersten Seite (oder HomeScreen)
       Navigator.pushReplacement(

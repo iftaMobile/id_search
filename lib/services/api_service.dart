@@ -21,6 +21,26 @@ class LoginResult {
 class ApiService {
   static const String _baseMobApp = 'https://www.tierregistrierung.de/mob_app';
 
+  Future<bool> sendFinderNumber(String finderPhone) async {
+    // Basis-URL
+    const base = 'https://www.tierregistrierung.de/mob_app';
+    // Einfach nur tag=log und phone parameter
+    final uri = Uri.parse('$base/jwwdblog.php').replace(
+      queryParameters: {
+        'tag':   'log',
+        'phone': finderPhone.trim(),
+      },
+    );
+
+    // Debug: überprüfe im Log, wie die URL aussieht
+    debugPrint('🔐 sendFinderNumber → $uri');
+
+    // Sende POST (Body bleibt leer, wie in deinem Java-Code)
+    final resp = await http.post(uri).timeout(const Duration(seconds: 10));
+    return resp.statusCode == 200;
+  }
+
+
   /// 1) Login → Session-ID (+ optional adr_id if your API returns it)
   static Future<LoginResult> login({
     required String username,
