@@ -56,9 +56,18 @@ class _TransponderSearchPageState extends State<TransponderSearchPage> {
     debugPrint('🔐 Log-Response: ${resp.statusCode}, Body: ${resp.body}');
   }
 
+  Future<String?> _loadPhoneNumber() async {
+    final prefs = await SharedPreferences.getInstance();
+    final phone = prefs.getString('userPhone');  // statt 'phone_number'
+    debugPrint('Geladene Telefonnummer: $phone');
+    return phone;
+  }
+
+
 
   // Ersetze deine bestehende _onSearch()-Methode in _TransponderSearchPageState komplett durch diesen Block:
 
+  /// Wird aufgerufen, wenn der Nutzer auf "Suchen" drückt
   void _onSearch() async {
     final code = _controller.text.trim();
     if (code.isEmpty) {
@@ -68,41 +77,46 @@ class _TransponderSearchPageState extends State<TransponderSearchPage> {
 
     setState(() {
       _errorText = null;
-      _isLoading = true;       // Spinner anzeigen
+      _isLoading = true;  // Spinner anzeigen
     });
 
     try {
-      // 1) Protokolliere die Finder-Nummer (optional, falls du das weiter nutzen willst)
-      await _sendFinderNumber('017643331902');
+      // 1) Telefonnummer aus SharedPreferences holen
+      final phone = await _loadPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        throw Exception('Keine Telefonnummer gespeichert');
+      }
 
-      // 2) Lade die gespeicherte Session-ID
+      // 2) Finder-Log an jwwdblog.php senden
+      await _sendFinderNumber(phone);
+
+      // 3) Session-ID aus SharedPreferences holen
       final sessionId = await _loadSessionId();
-      if (sessionId == null) {
+      if (sessionId == null || sessionId.isEmpty) {
         throw Exception('Keine Session-ID gefunden');
       }
 
-      // 3) Baue den Kommentar-Text
-      final commentText =
-          'Finder‐Nummer 017643331902 hat Transponder $code gefunden';
+      // 4) Kommentar-Text bauen
+      final commentText = 'Finder‐Nummer $phone hat Transponder $code gefunden';
 
-      // 4) Poste den Kommentar über den mobilen Endpoint
+      // 5) Kommentar über den mobilen Endpoint abschicken
       final result = await _postCommentMobile(
-        finderName: 'Finder-Nummer 017643331902',
-        primaryNumber: '017643331902',
+        finderName: phone,
+        primaryNumber: phone,
         query: code,
         commentText: commentText,
-        imei: 'BP22.250325.006',  // dieselbe IMEI wie bei der Suche
+        imei: 'BP22.250325.006',  // dieselbe IMEI wie bei der Transponder-Suche
         sessionId: sessionId,
-        tag: 'addComment',        // manchmal erforderlich
+        tag: 'addComment',        // falls serverseitig notwendig
       );
       debugPrint('📱 jgetcomments.php-Antwort: $result');
 
-      // 5) Bestätigung im UI
+      // 6) Erfolg im UI anzeigen
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Kommentar erfolgreich gepostet')),
       );
 
-      // 6) Zur Result-Page navigieren
+      // 7) Zur Result-Page navigieren
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => TransponderResultPage(transponder: code),
