@@ -244,7 +244,7 @@ class _FirstPageState extends State<FirstPage> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), // 👈 added vertical padding
                   child: GridView.count(
                     shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+                   // physics: (),
                     crossAxisCount: 2,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 35,

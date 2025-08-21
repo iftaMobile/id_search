@@ -34,7 +34,6 @@ class Animal {
     );
   }
 }
-
 class User {
   final String adrId;
   final String name;
@@ -49,6 +48,7 @@ class User {
   final String fax;
   final String lastChanged;
   final String icn;
+
 
   /// Animal data
   final Animal animal;

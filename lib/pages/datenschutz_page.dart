@@ -55,9 +55,11 @@ class _Datenschutz extends State<Datenschutz> {
         alignment: Alignment.topCenter,
         child: Padding(
           padding: const EdgeInsets.only(top: 24),
-          child: Text("Datenschutz"),
+          child: Icon(Icons.history, size:300 )
+          
         ),
       ),
+      
     );
   }
 }
