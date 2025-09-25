@@ -21,6 +21,7 @@ class SessionManager {
   }
 
 
+
   ///  ——————————————————————————————
   /// Returns a valid sesid, logging in if needed.
   Future<String> getSesId({
@@ -61,6 +62,16 @@ class SessionManager {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyAdrId);
   }
+
+  Future<bool> get isLoggedIn async {
+    final sesid   = await storedSesId;
+    final username = await storedUsername;
+    return sesid != null &&
+        sesid.isNotEmpty &&
+        username != null &&
+        username.isNotEmpty;
+  }
+
 
 // gespeicherte sesId lesen (bestehend)
   Future<String?> get storedSesId async {

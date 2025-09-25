@@ -1,4 +1,7 @@
 // lib/services/api_service.dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import '../models/tattoo_match.dart';
 
 import 'dart:io';
 import 'dart:convert';
@@ -40,8 +43,33 @@ class ApiService {
     return resp.statusCode == 200;
   }
 
+  static Future<List<TransponderMatch>> fetchTransponderDataById({
+    required String id,
+    required String sesid,
+  }) async {
+    final imei = await _getDeviceId();
+    final uri = Uri.parse('$_baseMobApp/search_ifta_japp.php').replace(
+      queryParameters: {
+        'tag':   'search',
+        'id':    id,
+        'imei':  imei,
+        'sesid': sesid,
+      },
+    );
 
-  /// 1) Login → Session-ID (+ optional adr_id if your API returns it)
+    final resp = await http.get(uri);
+    if (resp.statusCode != 200) {
+      throw Exception('ID-Suche fehlgeschlagen: ${resp.statusCode}');
+    }
+
+    final jsonList = jsonDecode(resp.body) as List<dynamic>;
+    return jsonList
+        .whereType<Map<String, dynamic>>()
+        .map(TransponderMatch.fromJson)
+        .toList();
+  }
+
+/// 1) Login → Session-ID (+ optional adr_id if your API returns it)
   static Future<LoginResult> login({
     required String username,
     required String password,

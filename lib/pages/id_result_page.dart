@@ -1,3 +1,5 @@
+// lib/pages/id_result_page.dart
+
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/session_manager.dart';
@@ -20,6 +22,7 @@ class _IdResultPageState extends State<IdResultPage> {
   CoinInfo? _info;
   List<CoinSearch> _searchResults = [];
   bool _isLoading = true;
+  bool _isLoggedIn = false;
   String? _errorMessage;
 
   @override
@@ -29,41 +32,56 @@ class _IdResultPageState extends State<IdResultPage> {
   }
 
   Future<void> _loadData() async {
-    try {
-      // 1) Hol Session-ID
-      final sesid = await SessionManager.instance.getAnonymousSesId();
-        //final sesid = await SessionManager.instance.getSesId(
-        //username: 'apiuser',           // deine echten Credentials
-       // password: 'geheimesPasswort',  // deine echten Credentials
-     // );
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-      // 2) Abruf der IFTA-Daten
+    try {
+      // 1) Prüfe, ob der User eingeloggt ist
+      final loggedIn = await SessionManager.instance.isLoggedIn;
+
+      // 2) Wähle das richtige Session-ID-Token
+      final sesid = loggedIn
+          ? (await SessionManager.instance.storedSesId)!
+          : await SessionManager.instance.getAnonymousSesId();
+
+      // 3) Hole die IFTA-Daten
       final data = await ApiService.fetchIftaData(
         coin: widget.coin.trim(),
         sesid: sesid,
       );
 
-      // 3) Parsen der beiden Listen
-      final infoJsonList = data['ifta_coin_info'] as List<dynamic>;
-      final searchJsonList = data['ifta_coin_search'] as List<dynamic>;
+      // 4) Guarded JSON-Zugriff
+      final rawInfo = data['ifta_coin_info'];
+      final rawSearch = data['ifta_coin_search'];
 
+      final infoJsonList = rawInfo is List ? rawInfo : <dynamic>[];
+      final searchJsonList = rawSearch is List ? rawSearch : <dynamic>[];
+
+      // 5) Sichere Deserialisierung
       final infoList = infoJsonList
-          .map((e) => CoinInfo.fromJson(e as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map(CoinInfo.fromJson)
           .toList();
 
       final searchList = searchJsonList
-          .map((e) => CoinSearch.fromJson(e as Map<String, dynamic>))
+          .whereType<Map<String, dynamic>>()
+          .map(CoinSearch.fromJson)
           .toList();
 
-      // 4) State aktualisieren
+      // 6) State updaten
       setState(() {
         _info = infoList.isNotEmpty ? infoList.first : null;
         _searchResults = searchList;
-        _isLoading = false;
+        _isLoggedIn = loggedIn;
       });
     } catch (e) {
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = 'Fehler beim Laden: $e';
+      });
+    } finally {
+      setState(() {
         _isLoading = false;
       });
     }
@@ -80,7 +98,7 @@ class _IdResultPageState extends State<IdResultPage> {
     if (_errorMessage != null) {
       return Scaffold(
         appBar: AppBar(title: Text('IFTA Coin ${widget.coin}')),
-        body: Center(child: Text('Error: $_errorMessage')),
+        body: Center(child: Text(_errorMessage!)),
       );
     }
 
@@ -91,6 +109,7 @@ class _IdResultPageState extends State<IdResultPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Anzeige der CoinInfo (falls vorhanden)
             if (_info != null) ...[
               Text(
                 'Device: ${_info!.device}',
@@ -110,19 +129,18 @@ class _IdResultPageState extends State<IdResultPage> {
               const Divider(height: 32),
             ],
 
+            // Suchergebnisse
             const Text(
               'Search Results',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
 
-            // Wenn keine Ergebnisse, Hinweis anzeigen…
             if (_searchResults.isEmpty)
               const Expanded(
                 child: Center(child: Text('No search results found.')),
               )
             else
-            // … sonst ListView
               Expanded(
                 child: ListView.separated(
                   itemCount: _searchResults.length,
@@ -134,11 +152,24 @@ class _IdResultPageState extends State<IdResultPage> {
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Tel Nummer: ${item.telefonPriv.isNotEmpty ? item.telefonPriv : '–'}'),
-                          Text('Halter: ${item.haltername.isNotEmpty ? item.haltername : '–'}'),
-                          Text('Transponder: ${item.transponder ?? '–'}'),
-                          Text('${item.rasse ?? '–'}, ${item.farbe ?? '–'}'),
-                          Text('Born: ${item.geburt ?? '–'}'),
+                          // Telefonnummer immer anzeigen
+                          Text('Tel Nummer: ${item.telefonPriv.isNotEmpty ? item.telefonPriv : '–'}',),
+                          // Rest der Felder nur für eingeloggte User
+                          if (_isLoggedIn) ...[
+                            Text('Halter: ${item.haltername.isNotEmpty ? item.haltername : '–'}',),
+                            Text('Transponder: ${item.transponder ?? '–'}',),
+                            Text('Adresse: ${item.strasse ?? '–'}',),
+                            Text('Ort: ${item.ort ?? '–'}',),
+                          ] else ...[
+                            // Hinweis für anonyme User
+                            const Padding(
+                              padding: EdgeInsets.only(top: 8),
+                              child: Text(
+                                'Weitere Details nach Login sichtbar.',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       isThreeLine: true,

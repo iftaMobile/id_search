@@ -1,10 +1,10 @@
-import 'dart:io';
-import 'dart:convert';        // für latin1.decoder / utf8.decoder
+// lib/pages/transponder_search_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'transponder_result_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../services/session_manager.dart';
+import 'transponder_result_page.dart';
 
 class TransponderSearchPage extends StatefulWidget {
   const TransponderSearchPage({Key? key}) : super(key: key);
@@ -14,53 +14,28 @@ class TransponderSearchPage extends StatefulWidget {
 }
 
 class _TransponderSearchPageState extends State<TransponderSearchPage> {
-  final TextEditingController _controller = TextEditingController();
-  String? _errorText;
+  final _controller = TextEditingController();
   bool _isLoading = false;
+  String? _errorText;
+
+  // ← Initialized immediately, no late init error
+  final http.Client _httpClient = http.Client();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _httpClient.close();
+    super.dispose();
+  }
 
   Future<String?> _loadSessionId() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('sesid');
   }
 
-
-
-  // HttpClient mit Zertifikat-Callback, aber keine Cookie-Persistierung
-  late final http.Client _httpClient;
-
-  @override
-  void initState() {
-    super.initState();
-    _httpClient = http.Client();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _httpClient.close();    // <-- schließe den Client
-    super.dispose();
-  }
-
-  // 1) Logge die Finder-Telefonnummer (wie jwwdblog.php es erwartet)
-  Future<void> _sendFinderNumber(String phone) async {
-    final uri = Uri.parse(
-      'https://www.tierregistrierung.de/mob_app/jwwdblog.php'
-          '?tag=log&phone=$phone',
-    );
-    final resp = await _httpClient.get(
-      uri,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (FlutterApp)',
-      },
-    );
-    debugPrint('🔐 Log-Response: ${resp.statusCode}, Body: ${resp.body}');
-  }
-
   Future<String?> _loadPhoneNumber() async {
     final prefs = await SharedPreferences.getInstance();
-    final phone = prefs.getString('userPhone');  // statt 'phone_number'
-    debugPrint('Geladene Telefonnummer: $phone');
-    return phone;
+    return prefs.getString('userPhone');
   }
 
   Future<String?> _loadUsername() async {
@@ -68,104 +43,46 @@ class _TransponderSearchPageState extends State<TransponderSearchPage> {
     return prefs.getString('username');
   }
 
-  // Ersetze deine bestehende _onSearch()-Methode in _TransponderSearchPageState komplett durch diesen Block:
-
-  /// Wird aufgerufen, wenn der Nutzer auf "Suchen" drückt
-  void _onSearch() async {
-    final code = _controller.text.trim();
-    if (code.isEmpty) {
-      setState(() => _errorText = 'Bitte einen Transponder-Code eingeben');
-      return;
-    }
-
-    setState(() {
-      _errorText = null;
-      _isLoading = true;
-    });
-
-    try {
-      // 1) Telefonnummer holen
-      final phone = await _loadPhoneNumber();
-      if (phone == null || phone.isEmpty) {
-        throw Exception('Keine Telefonnummer gespeichert');
-      }
-
-      // 1a) Username holen & Fallback auf phone
-      final username = await _loadUsername();
-      final finderName = (username != null && username.isNotEmpty)
-          ? username
-          : phone;
-
-      debugPrint('🔍 Loaded username: $username');
-      debugPrint('🔍 Final finderName: $finderName');
-
-
-      // 2) Finder-Log senden (bleibt Telefonnummer)
-      await _sendFinderNumber(phone);
-
-      // 3) Session-ID holen
-      final sessionId = await _loadSessionId();
-      if (sessionId == null || sessionId.isEmpty) {
-        throw Exception('Keine Session-ID gefunden');
-      }
-
-      // 5) Kommentar senden – hier mit dem neuen finderName
-      final result = await _postCommentMobile(
-        finderName: finderName,
-        primaryNumber: phone,
-        query: code,
-        commentText: '$finderName hat Transponder $code gefunden',  // <-- hier dein Username
-        imei: 'BP22.250325.006',
-        sessionId: sessionId,
-        tag: 'addComment',
-      );
-
-      debugPrint('📱 jgetcomments.php-Antwort: $result');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kommentar erfolgreich gepostet')),
-      );
-
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => TransponderResultPage(transponder: code),
-        ),
-      );
-    } catch (e) {
-      debugPrint('❌ Fehler in _onSearch(): $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fehler: $e')),
-      );
-    } finally {
-      setState(() => _isLoading = false);
-    }
+  Future<void> _sendFinderNumber(String phone) async {
+    final uri = Uri.parse(
+      'https://www.tierregistrierung.de/mob_app/jwwdblog.php'
+          '?tag=log&phone=$phone',
+    );
+    final resp = await _httpClient.get(
+      uri,
+      headers: {'User-Agent': 'Mozilla/5.0 (FlutterApp)'},
+    );
+    debugPrint('🔐 Log-Response: ${resp.statusCode}, Body: ${resp.body}');
   }
 
-
-  // Schritt A: Tier-Detail-Seite laden und authid extrahieren
-  // 1) Methode um den commentText ergänzen
   Future<String> _postCommentMobile({
     required String finderName,
     required String primaryNumber,
     required String query,
-    required String commentText,     // neu!
+    required String commentText,
     required String imei,
     required String sessionId,
     String? tag,
   }) async {
-    final uri = Uri.parse('https://www.tierregistrierung.de/mob_app/jgetcomments.php');
+    final uri = Uri.parse(
+      'https://www.tierregistrierung.de/mob_app/jgetcomments.php',
+    );
 
+    // Basis-Body
     final body = <String, String>{
       'name': finderName,
       'number': primaryNumber,
-      'various': commentText,        // <— hier der Kommentar
+      'various': commentText,
       'imei': imei,
       'sesid': sessionId,
       if (tag != null) 'tag': tag,
-      if (query.length == 15) 'transponder': query
-      else if (query.length == 8) 'iftaid': query
-      else 'id': query,
     };
+
+    // Dynamischen Key hinzufügen
+    final key = (query.length == 15)
+        ? 'transponder'
+        : (query.length == 8 ? 'iftaid' : 'id');
+    body[key] = query;
 
     debugPrint('🔍 POST jgetcomments.php → Body: $body');
 
@@ -184,7 +101,67 @@ class _TransponderSearchPageState extends State<TransponderSearchPage> {
     return resp.body;
   }
 
+  Future<void> _onSearch() async {
+    final code = _controller.text.trim();
+    if (code.isEmpty) {
+      setState(() => _errorText = 'Bitte einen Transponder-Code eingeben.');
+      return;
+    }
 
+    setState(() {
+      _errorText = null;
+      _isLoading = true;
+    });
+
+    try {
+      // 1) Telefonnummer + Username/FinderName
+      final phone = await _loadPhoneNumber();
+      if (phone == null || phone.isEmpty) {
+        throw Exception('Keine Telefonnummer gespeichert.');
+      }
+      final username = await _loadUsername();
+      final finderName = (username?.isNotEmpty == true) ? username! : phone;
+
+      // 2) Logge Finder-Nummer
+      await _sendFinderNumber(phone);
+
+      // 3) Session-ID: stored OR anonymous fallback
+      var sessionId = await _loadSessionId();
+      if (sessionId == null || sessionId.isEmpty) {
+        sessionId = await SessionManager.instance.getAnonymousSesId();
+      }
+
+      // 4) Kommentar posten
+      final commentText = '$finderName hat Transponder $code gefunden';
+      await _postCommentMobile(
+        finderName: finderName,
+        primaryNumber: phone,
+        query: code,
+        commentText: commentText,
+        imei: 'BP22.250325.006',
+        sessionId: sessionId,
+        tag: 'addComment',
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kommentar erfolgreich gepostet')),
+      );
+
+      // 5) Weiter zum Ergebnis
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => TransponderResultPage(transponder: code),
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ Fehler in _onSearch(): $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Fehler: $e')),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -200,15 +177,15 @@ class _TransponderSearchPageState extends State<TransponderSearchPage> {
                   controller: _controller,
                   decoration: InputDecoration(
                     labelText: 'Transponder-Code',
+                    hintText: 'z.B. 000123456789012',
                     errorText: _errorText,
                     border: const OutlineInputBorder(),
                   ),
-                  keyboardType: TextInputType.number,
                   onSubmitted: (_) => _onSearch(),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
-                  onPressed: _onSearch,
+                  onPressed: _isLoading ? null : _onSearch,
                   icon: const Icon(Icons.search),
                   label: const Text('Suchen'),
                 ),
@@ -221,10 +198,7 @@ class _TransponderSearchPageState extends State<TransponderSearchPage> {
               ),
           ],
         ),
-
       ),
     );
   }
 }
-
-

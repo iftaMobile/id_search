@@ -10,56 +10,30 @@ class IdentificationPage extends StatefulWidget {
 
 class _IdentificationPageState extends State<IdentificationPage> {
   final _phoneController = TextEditingController();
-  final _codeController = TextEditingController();
-
   String? _errorText;
-  bool _codeSent = false;
-  String? _generatedCode; // Simuliert den SMS-Code
 
   @override
   void dispose() {
     _phoneController.dispose();
-    _codeController.dispose();
     super.dispose();
   }
 
-  void _sendCode() {
+  Future<void> _verifyAndProceed() async {
     final phone = _phoneController.text.trim();
 
-    if (phone.isEmpty || phone.length < 6) {
-      setState(() => _errorText = 'Bitte gültige Telefonnummer eingeben');
-      return;
-    }
+    // Simple regex for German mobile numbers (starts with +49 or 01...)
+    final phoneRegex = RegExp(r'^(\+49|0)[1-9][0-9]{7,}$');
 
-    // Simuliere 4-stelligen Code
-    final code = (1000 + (DateTime.now().millisecondsSinceEpoch % 9000)).toString();
-    _generatedCode = code;
-    _codeSent = true;
-
-    // Hier würdest du den Code per SMS versenden
-    debugPrint('📲 SMS-Code gesendet: $code');
-
-    setState(() {
-      _errorText = null;
-    });
-  }
-
-  Future<void> _verifyCode() async {
-    final enteredCode = _codeController.text.trim();
-
-    if (enteredCode != _generatedCode) {
-      setState(() => _errorText = 'Code ist ungültig oder abgelaufen');
+    if (!phoneRegex.hasMatch(phone)) {
+      setState(() => _errorText = 'Bitte gültige Telefonnummer im Format +49... oder 01... eingeben die mindestens 11 Stellen hat');
       return;
     }
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isVerified', true);
-
-    // 📞 Telefonnummer speichern
-    final phone = _phoneController.text.trim();
     await prefs.setString('userPhone', phone);
-    debugPrint('✅ Verifiziert! Telefonnummer gespeichert: $phone');
 
+    debugPrint('✅ Telefonnummer gespeichert: $phone');
     Navigator.pushReplacementNamed(context, '/first');
   }
 
@@ -73,7 +47,7 @@ class _IdentificationPageState extends State<IdentificationPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Zur Sicherheit benötigen wir Ihre Telefonnummer. Sie erhalten einen 4-stelligen Code per SMS.',
+              'Zur Sicherheit benötigen wir Ihre Telefonnummer.',
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 16),
@@ -84,30 +58,14 @@ class _IdentificationPageState extends State<IdentificationPage> {
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.phone,
+              onSubmitted: (_) => _verifyAndProceed(),
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: _sendCode,
-              icon: const Icon(Icons.sms),
-              label: const Text('Code senden'),
+              onPressed: _verifyAndProceed,
+              icon: const Icon(Icons.check),
+              label: const Text('Weiter'),
             ),
-            if (_codeSent) ...[
-              const SizedBox(height: 24),
-              TextField(
-                controller: _codeController,
-                decoration: const InputDecoration(
-                  labelText: 'SMS-Code eingeben',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                maxLength: 4,
-              ),
-              ElevatedButton.icon(
-                onPressed: _verifyCode,
-                icon: const Icon(Icons.verified),
-                label: const Text('Verifizieren'),
-              ),
-            ],
             const SizedBox(height: 16),
             const Text(
               'Ihre Telefonnummer wird ausschließlich zur Identitätsprüfung gespeichert',

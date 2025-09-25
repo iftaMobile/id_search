@@ -22,6 +22,7 @@ class TransponderResultPage extends StatefulWidget {
 class _TransponderResultPageState extends State<TransponderResultPage> {
   List<TransponderMatch> _results = [];
   bool _isLoading = true;
+  bool loggedIn = false;
   String? _error;
 
   Future<bool> sendFinderNumber(String finderPhone) async {
@@ -54,6 +55,8 @@ class _TransponderResultPageState extends State<TransponderResultPage> {
 
   Future<void> _loadMatches() async {
     try {
+
+      final loggedIn = await SessionManager.instance.isLoggedIn;
       // 1) Session-ID holen
       final sesid = await SessionManager.instance.getAnonymousSesId();
       // final sesid = await SessionManager.instance.getSesId(
@@ -121,20 +124,22 @@ class _TransponderResultPageState extends State<TransponderResultPage> {
           itemCount: _results.length,
           separatorBuilder: (_, __) => const Divider(),
           itemBuilder: (_, i) {
-            final m = _results[i];
+            final item = _results[i];
             return ListTile(
-              title: Text(m.tiername ?? '–'),
+              title: Text(item.tiername ?? '–'),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Tel: ${m.telefonPriv ?? '–'}'),
-                  Text('Halter: ${m.haltername ?? '–'}'),
-                  Text(
-                    'Rasse/Farbe: ${m.rasse ?? '–'}, ${m.farbe ?? '–'}',
-                  ),
-                  Text('Geboren: ${m.geburt ?? '–'}'),
+              // Telefonnummer immer anzeigen
+                Text('Tel Nummer: ${item.telefonPriva.isNotEmpty ? item.telefonPriva : '–'}',),
+                // Rest der Felder nur für eingeloggte User
+                if (loggedIn) ...[
+                Text('Halter: ${item.haltername.isNotEmpty ? item.haltername : '–'}',),
+                Text('Transponder: ${item.transponder ?? '–'}',),
+                Text('Adresse: ${item.strasse ?? '–'}',),
+                Text('Ort: ${item.ort ?? '–'}',),
                 ],
-              ),
+              ]),
               isThreeLine: true,
             );
           },
